@@ -142,8 +142,12 @@ class serialNODE():
         """ Represents the writing activity on the the serial.
         """
         command = json.loads(msg.data)
+        print("hh", type(command), type(msg), type(msg.data))
+        print(msg)
+        print(command)
         # Unpacking the dictionary into action and values
         command_msg = self.messageConverter.get_command(**command)
+        
         self.serialCom.write(command_msg.encode('ascii'))
         self.historyFile.write(command_msg)
             

@@ -51,6 +51,8 @@ add_message_files(
   IMU.msg
   localisation.msg
   vehicles.msg
+  Lane.msg
+  Sign.msg
   environmental.msg
 )
 
