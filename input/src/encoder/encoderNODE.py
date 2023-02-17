@@ -54,6 +54,7 @@ class encoderNODE():
         )
 
         # encoder publisher object
+        self.rate = rospy.Rate(30)
         self.encoder_publisher = rospy.Publisher("/automobile/encoder", Float32, queue_size=3)
         
     #================================ RUN ========================================
@@ -65,8 +66,8 @@ class encoderNODE():
     def _getting(self):
         while not rospy.is_shutdown():
             encoderdata = Float32()
-            speed = self.ser.readline() #make sure this is a float32
             try:
+                speed = self.ser.readline() #make sure this is a float32
                 s = speed.decode("utf-8")
                 colon_index = s.find(':')
                 subs = s[colon_index+1:s.find(';', colon_index)]
@@ -76,7 +77,7 @@ class encoderNODE():
                 pass
             self.encoder_publisher.publish(encoderdata)
             
-            time.sleep(0.1)
+            # time.sleep(0.1)
         
 if __name__ == "__main__":
     encoderNod = encoderNODE()
