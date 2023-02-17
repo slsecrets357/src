@@ -317,6 +317,7 @@ class CameraHandler():
         """
         # self.cv_image = self.bridge.compressed_imgmsg_to_cv2(data, "bgr8")
         self.cv_image = self.bridge.imgmsg_to_cv2(data, "rgb8")
+        #self.cv_image+=1
         self.histogram()
         # self.dotted_lines()
         

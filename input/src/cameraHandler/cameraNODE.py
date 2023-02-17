@@ -33,6 +33,7 @@ import numpy as np
 import time
 
 import rospy
+import cv2
 
 from cv_bridge       import CvBridge
 from sensor_msgs.msg import Image
@@ -88,13 +89,14 @@ class cameraNODE():
         # camera
         self.camera = PiCamera()
         # camera settings
-        self.camera.resolution      =   (1640,1232)
+        #self.camera.resolution      =   (1640,1232)
+        self.camera.resolution = (640, 480)
         self.camera.framerate       =   15
 
-        self.camera.brightness      =   50
-        self.camera.shutter_speed   =   1200
-        self.camera.contrast        =   0
-        self.camera.iso             =   0 # auto
+        self.camera.brightness      =   42
+        #self.camera.shutter_speed   =   1200
+        #self.camera.contrast        =   0
+        #self.camera.iso             =   0 # auto
 
         self.imgSize                =   (640, 480)    # the actual image size
             
@@ -123,6 +125,8 @@ class cameraNODE():
             data  = np.frombuffer(data, dtype=np.uint8)
             data  = np.reshape(data, (480, 640, 3))
             stamp = time.time()
+            #cv2.imshow("Frame", data)
+            #key = cv2.waitKey(1) & 0xFF
 
             # output image and time stamp
             # Note: The sending process can be blocked, when doesn't exist any consumer process and it reaches the limit size.

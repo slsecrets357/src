@@ -24,6 +24,7 @@ class CameraHandler():
         :return: nothing but sets [cv_image] to the usefull image that can be use in opencv (numpy array)
         """
         self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        print(np.sum(self.cv_image))
         cv2.imshow("Frame preview", self.cv_image)
         key = cv2.waitKey(1)
     
