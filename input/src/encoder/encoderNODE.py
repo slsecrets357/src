@@ -72,6 +72,7 @@ class encoderNODE():
                 colon_index = s.find(':')
                 subs = s[colon_index+1:s.find(';', colon_index)]
                 f = float(subs)
+                # print(f)
                 encoderdata.data  = f
             except:
                 pass

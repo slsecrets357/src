@@ -78,27 +78,28 @@ class serialNODE():
         """ It's represent the reading activity on the the serial.
         """
         while not rospy.is_shutdown():
-            read_chr=self.serialCom.read()
-            try:
-                read_chr=(read_chr.decode("ascii"))
-                if read_chr=='@':
-                    self.isResponse=True
-                    if len(self.buff)!=0:
-                        self.__checkSubscriber(self.buff)
-                    self.buff=""
-                elif read_chr=='\r':   
-                    self.isResponse=False
-                    if len(self.buff)!=0:
-                        self.__checkSubscriber(self.buff)
-                    self.buff=""
-                if self.isResponse:
-                    self.buff+=read_chr
-                self.historyFile.write(read_chr)
+            # read_chr=self.serialCom.read()
+            # try:
+            #     read_chr=(read_chr.decode("ascii"))
+            #     if read_chr=='@':
+            #         self.isResponse=True
+            #         if len(self.buff)!=0:
+            #             self.__checkSubscriber(self.buff)
+            #         self.buff=""
+            #     elif read_chr=='\r':   
+            #         self.isResponse=False
+            #         if len(self.buff)!=0:
+            #             self.__checkSubscriber(self.buff)
+            #         self.buff=""
+            #     if self.isResponse:
+            #         self.buff+=read_chr
+            #     self.historyFile.write(read_chr)
                  
-            # except UnicodeDecodeError:
+            # # except UnicodeDecodeError:
+            # #     pass
+            # except:
             #     pass
-            except:
-                pass
+            rospy.spin()
     
     def __checkSubscriber(self,f_response):
         """ Checking the list of the waiting object to redirectionate the message to them. 

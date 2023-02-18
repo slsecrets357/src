@@ -12,10 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  tf2
-  tf2_geometry_msgs
-  tf2_ros
-  turtlesim
   message_generation
 )
 
@@ -53,19 +49,19 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  Lane.msg
-  Sign.msg
-)
+# add_message_files(
+#   FILES
+#   Lane.msg
+#   Sign.msg
+# )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  Localization.srv
-  nav.srv
-  get_direction.srv
-)
+# add_service_files(
+#   FILES
+#   Localization.srv
+#   nav.srv
+#   get_direction.srv
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -112,7 +108,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES control
- CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs tf2 tf2_geometry_msgs tf2_ros turtlesim message_runtime
+ CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -142,9 +138,9 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(control2
-  src/control2.cpp
-)
+# add_executable(control2
+#   src/control2.cpp
+# )
 # add_executable(lane
 #   src/lane.cpp
 # )
@@ -166,9 +162,9 @@ add_executable(control2
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(control2
-  ${catkin_LIBRARIES}
-)
+# target_link_libraries(control2
+#   ${catkin_LIBRARIES}
+# )
 # target_link_libraries(lane
 #   ${catkin_LIBRARIES}
 # )

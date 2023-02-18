@@ -37,6 +37,7 @@ import math
 import rospy
 
 from utils.msg import IMU
+from std_msgs.msg import Header
 
 sensorType = "BNO055"
 
@@ -94,7 +95,10 @@ class imuNODE():
                     data = self.imu.getIMUData()
                     fusionPose = data["fusionPose"]
                     accel = data["accel"]
-                    
+                    header = Header()
+                    header.stamp = rospy.Time.now()
+                    header.frame_id = "bno055"
+                    imudata.header = header
                     imudata.roll   =  math.degrees(fusionPose[0])
                     imudata.pitch  =  math.degrees(fusionPose[1])
                     imudata.yaw    =  math.degrees(fusionPose[2])
