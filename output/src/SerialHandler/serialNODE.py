@@ -95,10 +95,10 @@ class serialNODE():
                     self.buff+=read_chr
                 self.historyFile.write(read_chr)
                  
-	    except:
-		pass
             # except UnicodeDecodeError:
             #     pass
+            except:
+                pass
     
     def __checkSubscriber(self,f_response):
         """ Checking the list of the waiting object to redirectionate the message to them. 
