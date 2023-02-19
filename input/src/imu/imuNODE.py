@@ -61,7 +61,7 @@ class imuNODE():
         rospy.init_node('imuNODE', anonymous=False)
         
         # BNO publisher object
-        self.BNO_publisher = rospy.Publisher("/automobile/imu", IMU, queue_size=1)
+        self.BNO_publisher = rospy.Publisher("/automobile/IMU", IMU, queue_size=1)
         
     #================================ RUN ========================================
     def run(self):
