@@ -37,8 +37,8 @@ import serial
 
 import rospy
 
-# from utils.msg import encoder
-from std_msgs.msg import Float32
+from utils.msg import encoder
+from std_msgs.msg import Float32, Header
 
 class encoderNODE():
     def __init__(self):
@@ -55,7 +55,7 @@ class encoderNODE():
 
         # encoder publisher object
         self.rate = rospy.Rate(30)
-        self.encoder_publisher = rospy.Publisher("/automobile/encoder", Float32, queue_size=3)
+        self.encoder_publisher = rospy.Publisher("/automobile/encoder", encoder, queue_size=3)
         
     #================================ RUN ========================================
     def run(self):
@@ -65,7 +65,7 @@ class encoderNODE():
     #================================ GETTING ========================================
     def _getting(self):
         while not rospy.is_shutdown():
-            encoderdata = Float32()
+            encoderdata = encoder()
             try:
                 speed = self.ser.readline() #make sure this is a float32
                 s = speed.decode("utf-8")
@@ -73,7 +73,11 @@ class encoderNODE():
                 subs = s[colon_index+1:s.find(';', colon_index)]
                 f = float(subs)
                 # print(f)
-                encoderdata.data  = f
+                encoderdata.speed  = f
+                header = Header()
+                header.stamp = rospy.Time.now()
+                header.frame_id = "bno055"
+                encoderdata.header = header
             except:
                 pass
             self.encoder_publisher.publish(encoderdata)
