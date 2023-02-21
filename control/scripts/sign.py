@@ -38,16 +38,18 @@ class ObjectDetector():
         # self.image_sub = rospy.Subscriber("automobile/image_raw/compressed", CompressedImage, self.image_callback)
         self.pub = rospy.Publisher("sign", Sign, queue_size = 3)
         self.p = Sign()
-        self.rate = rospy.Rate(0.3)
+        self.rate = rospy.Rate(10)
 
     def image_callback(self, data):
         """
         Callback function for the image processed topic
         :param data: Image data in the ROS Image format
         """
+        t1 = time.time()
         # Convert the image to the OpenCV format
         image = self.bridge.imgmsg_to_cv2(data, "rgb8")
         # image = self.bridge.compressed_imgmsg_to_cv2(data, "bgr8")
+
          # Update the header information
         header = Header()
         header.seq = data.header.seq
@@ -55,19 +57,19 @@ class ObjectDetector():
         header.frame_id = data.header.frame_id
         # Update the header information in the message
         self.p.header = header
-        t1 = time.time()
-        self.class_ids, __, self.boxes = self.detect(image, self.class_list, show=self.show)
-        self.p.objects = self.class_ids
-        self.p.num = len(self.class_ids)
-        if self.p.num>=2:
-            self.p.box1 = self.boxes[0]
-            self.p.box2 = self.boxes[1]
-        elif self.p.num>=1:
-            self.p.box1 = self.boxes[0]
 
-        print(self.p.objects)
-        print("time: ", time.time()-t1)
+        # self.class_ids, __, self.boxes = self.detect(image, self.class_list, show=self.show)
+        # self.p.objects = self.class_ids
+        # self.p.num = len(self.class_ids)
+        # if self.p.num>=2:
+        #     self.p.box1 = self.boxes[0]
+        #     self.p.box2 = self.boxes[1]
+        # elif self.p.num>=1:
+        #     self.p.box1 = self.boxes[0]
+
+        # print(self.p)
         self.pub.publish(self.p)
+        # print("time: ", time.time()-t1)
 
     def detect(self, image, class_list, save=False, show=False):
         input_image = format_yolov5(image) # making the image square
@@ -133,11 +135,14 @@ class ObjectDetector():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--show", type=str, default=True, help="show camera frames")
-    args = parser.parse_args()
-    print("hello world")
+    parser.add_argument("--show", type=str, default=False, help="show camera frames")
+    args = parser.parse_args(rospy.myargv()[1:])
     try:
-        node = ObjectDetector(show = args.show)
+        if args.show=="True":
+            s = True
+        else:
+            s = False
+        node = ObjectDetector(show = s)
         node.rate.sleep()
         rospy.spin()
     except rospy.ROSInterruptException:
