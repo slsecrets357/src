@@ -1,6 +1,6 @@
 <launch>
     <arg name="show_sign"  default="False"/>
-    <arg name="show_lane"  default="True"/>
+    <arg name="show_lane"  default="False"/>
     <arg name="method"  default="histogram"/>
     <node pkg="control" name="control" output="screen" type="controlL.py" required="true"/>
     <!-- <node pkg="control" name="localisation" output="screen" type="localisation.py" required="true"/> -->

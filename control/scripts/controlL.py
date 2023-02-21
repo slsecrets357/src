@@ -4,7 +4,7 @@ import numpy as np
 from message_filters import ApproximateTimeSynchronizer
 from std_msgs.msg import String, Byte
 from utils.msg import Lane, Sign
-from pynput import keyboard
+# from pynput import keyboard
 # from utils.srv import get_direction, nav
 import message_filters
 import time
