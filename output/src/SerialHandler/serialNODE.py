@@ -64,7 +64,7 @@ class serialNODE():
         
         self.command_subscriber = rospy.Subscriber("/automobile/command", String, self._write)
         
-        self.subscribe = rospy.Service("command_feedback_en", subscribing, self._subscribe)        
+        # self.subscribe = rospy.Service("command_feedback_en", subscribing, self._subscribe)        
     
      # ===================================== RUN ==========================================
     def run(self):
@@ -145,9 +145,9 @@ class serialNODE():
         """ Represents the writing activity on the the serial.
         """
         command = json.loads(msg.data)
-        print("hh", type(command), type(msg), type(msg.data))
-        print(msg)
-        print(command)
+        # print("hh", type(command), type(msg), type(msg.data))
+        # print(msg)
+        # print(command)
         # Unpacking the dictionary into action and values
         command_msg = self.messageConverter.get_command(**command)
         
