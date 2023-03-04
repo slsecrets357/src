@@ -16,7 +16,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import String
 from std_msgs.msg import Header
 from utils.msg import Lane
-import scipy
+# import scipy
 # from message_filters import ApproximateTimeSynchronizer
 
 class LaneDetector():
