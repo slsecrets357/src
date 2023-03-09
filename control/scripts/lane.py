@@ -14,6 +14,10 @@ from std_msgs.msg import Header
 from utils.msg import Lane
 from utils.srv import *
 # import scipy
+import RPi.GPIO as GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(17,GPIO.OUT,initial=GPIO.HIGH)
+GPIO.setup(27,GPIO.OUT,initial=GPIO.HIGH)
 
 class LaneDetector():
     def __init__(self, method = 'histogram', show=True):
@@ -48,6 +52,8 @@ class LaneDetector():
         self.maskd = alex.zeros((480,640),dtype='uint8')
         polyd = alex.array([[(0,240),(0,480),(256,480),(256,240)]]) # polyd might need adjustment
         cv2.fillPoly(self.maskd,polyd,255)
+        self.brightness = 255
+        self.off = True
         """
         Initialize the lane follower node
         """
@@ -63,7 +69,7 @@ class LaneDetector():
         self.rate = rospy.Rate(15)
 
         # dotted line service
-        self.server = rospy.Service("dotted", dotted, self.doDotted, buff_size=3)
+        # self.server = rospy.Service("dotted", dotted, self.doDotted, buff_size=3)
 
     def doDotted(self,request):
         return self.dotted_lines(self.image)
@@ -119,6 +125,12 @@ class LaneDetector():
         self.pub.publish(self.p)
         # print(self.p)
         # print("time: ", time.time()-t1)
+        if self.brightness < 50 and self.off:
+            GPIO.output(17,GPIO.LOW)
+            GPIO.output(27,GPIO.LOW)
+        if self.brightness > 50 and (not self.off):
+            GPIO.output(17,GPIO.HIGH)
+            GPIO.output(27,GPIO.HIGH)
 
     def dotted_lines(self,image):
         """
@@ -127,6 +139,7 @@ class LaneDetector():
         :return: Boolean signaling detection
         """
         img_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        self.brightness = alex.mean(img_gray)
         h = img_gray.shape[0]
         img_roi = cv2.bitwise_and(img_gray,self.maskd)
         ret, thresh = cv2.threshold(img_roi, 150, 255, cv2.THRESH_BINARY) # threshold might need adjustment
