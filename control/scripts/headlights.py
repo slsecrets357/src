@@ -4,21 +4,21 @@ GPIO.setmode(GPIO.BCM)
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 
-GPIO.setup(17,GPIO.OUT,initial=GPIO.LOW)
-GPIO.setup(27,GPIO.OUT,initial=GPIO.LOW)
+GPIO.setup(17,GPIO.OUT,initial=GPIO.HIGH)
+GPIO.setup(27,GPIO.OUT,initial=GPIO.HIGH)
 
 fig, ax = plt.subplots()
 
 def on(event):
     print("on")
-    GPIO.output(17,GPIO.HIGH)
-    GPIO.output(27,GPIO.HIGH)
+    GPIO.output(17,GPIO.LOW)
+    GPIO.output(27,GPIO.LOW)
     return
 
 def off(event):
     print("off")
-    GPIO.output(17,GPIO.LOW)
-    GPIO.output(27,GPIO.LOW)
+    GPIO.output(17,GPIO.HIGH)
+    GPIO.output(27,GPIO.HIGH)
     return
 
 def close(event):
