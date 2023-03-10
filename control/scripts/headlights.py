@@ -26,7 +26,7 @@ def close(event):
     GPIO.cleanup()
     exit()
 
-axon = fig.add_axes([0.5, 0.05, 0.1, 0.075])
+axon = fig.add_axes([0.5, 0.05, 0.1, 0.075])    
 axoff = fig.add_axes([0.7, 0.05, 0.1, 0.075])
 axclose = fig.add_axes([0.9, 0.05, 0.1, 0.075])
 bon = Button(axon, 'on')
