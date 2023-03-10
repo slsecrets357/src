@@ -17,7 +17,7 @@ from utils.srv import *
 import RPi.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(17,GPIO.OUT,initial=GPIO.HIGH)
-GPIO.setup(27,GPIO.OUT,initial=GPIO.HIGH)
+# GPIO.setup(27,GPIO.OUT,initial=GPIO.HIGH)
 
 class LaneDetector():
     def __init__(self, method = 'histogram', show=True):
@@ -70,6 +70,11 @@ class LaneDetector():
 
         # dotted line service
         # self.server = rospy.Service("dotted", dotted, self.doDotted, buff_size=3)
+
+        def shutdown():
+            GPIO.cleanup()
+            # GPIO.output(17,GPIO.HIGH)
+        rospy.on_shutdown(shutdown)
 
     def doDotted(self,request):
         return self.dotted_lines(self.image)
@@ -125,16 +130,16 @@ class LaneDetector():
         self.pub.publish(self.p)
         # print(self.p)
         # print("time: ", time.time()-t1)
-        if self.brightness < 50 and self.off:
+        if self.brightness < 30 and self.off:
             GPIO.output(17,GPIO.LOW)
-            GPIO.output(27,GPIO.LOW)
+            # GPIO.output(27,GPIO.LOW)
             self.off = False
             print("Low visibility: activate headlights")
-        if self.brightness > 50 and (not self.off):
-            GPIO.output(17,GPIO.HIGH)
-            GPIO.output(27,GPIO.HIGH)
-            self.off = True
-            print("Deactivate headlights")
+        # if self.brightness > 50 and (not self.off):
+        #     GPIO.output(17,GPIO.HIGH)
+        #     # GPIO.output(27,GPIO.HIGH)
+        #     self.off = True
+        #     print("Deactivate headlights")
 
     def dotted_lines(self,image):
         """
