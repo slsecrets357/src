@@ -128,9 +128,13 @@ class LaneDetector():
         if self.brightness < 50 and self.off:
             GPIO.output(17,GPIO.LOW)
             GPIO.output(27,GPIO.LOW)
+            self.off = False
+            print("Low visibility: activate headlights")
         if self.brightness > 50 and (not self.off):
             GPIO.output(17,GPIO.HIGH)
             GPIO.output(27,GPIO.HIGH)
+            self.off = True
+            print("Deactivate headlights")
 
     def dotted_lines(self,image):
         """

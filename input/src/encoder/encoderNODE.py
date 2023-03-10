@@ -31,10 +31,9 @@ class encoderNODE():
         self.rate = rospy.Rate(30)
         self.encoder_publisher = rospy.Publisher("/automobile/encoder", encoder, queue_size=3)
 
-        def shutdown():
-            GPIO.cleanup()
-            # sys.exit()
-        rospy.on_shutdown(shutdown)
+        # def shutdown():
+        #     GPIO.cleanup()
+        # rospy.on_shutdown(shutdown)
         
     def setupLED(self):
         GPIO.setmode(GPIO.BCM)
