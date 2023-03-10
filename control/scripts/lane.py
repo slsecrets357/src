@@ -14,10 +14,9 @@ from std_msgs.msg import Header
 from utils.msg import Lane
 from utils.srv import *
 # import scipy
-import RPi.GPIO as GPIO
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(17,GPIO.OUT,initial=GPIO.HIGH)
-# GPIO.setup(27,GPIO.OUT,initial=GPIO.HIGH)
+# import RPi.GPIO as GPIO
+# GPIO.setmode(GPIO.BCM)
+# GPIO.setup(17,GPIO.OUT,initial=GPIO.HIGH)
 
 class LaneDetector():
     def __init__(self, method = 'histogram', show=True):
@@ -66,18 +65,18 @@ class LaneDetector():
         self.rate = rospy.Rate(15)
 
         # dotted line service
-        self.server = rospy.Service("dotted", dotted, self.doDotted, buff_size=3)
+        # self.server = rospy.Service("dotted", dotted, self.doDotted, buff_size=3)
 
-        self.brightness = 255
-        self.off = True
+        # self.brightness = 255
+        # self.off = True
 
-        def shutdown():
-            GPIO.cleanup()
-            # GPIO.output(17,GPIO.HIGH)
-        rospy.on_shutdown(shutdown)
+        # def shutdown():
+        #     GPIO.cleanup()
+        #     # GPIO.output(17,GPIO.HIGH)
+        # rospy.on_shutdown(shutdown)
 
-    def doDotted(self,request):
-        return self.dotted_lines(self.image)
+    # def doDotted(self,request):
+    #     return self.dotted_lines(self.image)
 
     def image_callback(self, data):
         """
@@ -97,7 +96,7 @@ class LaneDetector():
         self.image = self.bridge.imgmsg_to_cv2(data, "rgb8")
 
         #determine whether left lane is dotted (will make it a service)
-        self.dotted = self.dotted_lines(self.image)
+        # self.dotted = self.dotted_lines(self.image)
 
         # Extract the lanes from the image
         if self.method == 'histogram':
@@ -130,14 +129,12 @@ class LaneDetector():
         # print(self.p)
         # print("time: ", time.time()-t1)
 
-        if self.brightness < 30 and self.off:
-            GPIO.output(17,GPIO.LOW)
-            # GPIO.output(27,GPIO.LOW)
-            self.off = False
-            print("Low visibility: activate headlights")
+        # if self.brightness < 30 and self.off:
+        #     GPIO.output(17,GPIO.LOW)
+        #     self.off = False
+        #     print("Low visibility: activate headlights")
         # if self.brightness > 50 and (not self.off):
         #     GPIO.output(17,GPIO.HIGH)
-        #     # GPIO.output(27,GPIO.HIGH)
         #     self.off = True
         #     print("Deactivate headlights")
 
@@ -181,7 +178,7 @@ class LaneDetector():
         """
         self.stopline = False
         img_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        self.brightness = alex.mean(img_gray)
+        # self.brightness = alex.mean(img_gray)
         h = 480
         w = 640
         img_roi = cv2.bitwise_and(img_gray,self.maskh)
