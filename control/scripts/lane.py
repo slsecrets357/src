@@ -130,8 +130,8 @@ class LaneDetector():
         # print("time: ", time.time()-t1)
 
         print(self.brightness)
-	
-	if self.brightness < 30 and self.off:
+        
+        if self.brightness < 30 and self.off:
             GPIO.output(17,GPIO.LOW)
             self.off = False
             print("Low visibility: activate headlights")
