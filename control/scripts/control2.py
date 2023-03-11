@@ -5,7 +5,7 @@ from message_filters import ApproximateTimeSynchronizer
 from std_msgs.msg import String
 from utils.msg import Lane, Sign, localisation, IMU, encoder
 # from pynput import keyboard
-from utils.srv import get_direction, dotted
+#from utils.srv import get_direction, dotted
 import message_filters
 # import time
 import math
@@ -116,8 +116,8 @@ class StateMachine():
 
         # Create service proxy
         # self.get_dir = rospy.ServiceProxy('get_direction',get_direction)
-        self.get_dotted = rospy.ServiceProxy('dotted',dotted)
-        rospy.wait_for_service('dotted')
+        # self.get_dotted = rospy.ServiceProxy('dotted',dotted)
+        # rospy.wait_for_service('dotted')
         # how to use:
         # d = self.get_dotted("dotted").dotted
 
@@ -356,7 +356,7 @@ class StateMachine():
             # self.pedestrian_sem = 20 #set semaphore for pedestrian
             self.history = self.state
             self.state = 5
-            self.timer3 = rospy.Time.now()+rospy.Duration(1.5)
+            self.timer3 = rospy.Time.now()+rospy.Duration(2.5)
             return 1
         elif self.highway_entrance_detected():
             print("entering highway -> 6")
@@ -579,7 +579,7 @@ class StateMachine():
             # self.pedestrian_sem = 20 #set semaphore for pedestrian
             self.history = self.state
             self.state = 5
-            self.timer3 = rospy.Time.now()+rospy.Duration(1.5)
+            self.timer3 = rospy.Time.now()+rospy.Duration(2.5)
             return 1
         #Action: slow down
         # Publish the steering command
@@ -598,7 +598,7 @@ class StateMachine():
         else:
             print("pedestrian appears!!!")
             # self.pedestrian_sem=20
-            self.timer3 = rospy.Time.now()+rospy.Duration(1.5)
+            self.timer3 = rospy.Time.now()+rospy.Duration(2.5)
         #Action: idle
         self.idle()
         return 0 
@@ -737,7 +737,7 @@ class StateMachine():
                 print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
                 self.initialPoints = np.array([self.x, self.y])
                 print("initialPoints points: ", self.initialPoints)
-                self.offset = 0.1 + self.parksize
+                self.offset = 0.12 + self.parksize
                 print("begin going straight for "+str(self.offset)+"m")
                 self.odomX, self.odomY = 0.0, 0.0 #reset x,y
                 self.odomTimer = rospy.Time.now()

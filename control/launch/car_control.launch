@@ -5,5 +5,4 @@
 <node pkg="control" name="control" output="screen" type="control2.py" required="true"/>
 <!-- <node pkg="control" name="localisation" output="screen" type="localisation.py" required="true"/> -->
 <node pkg="control" args="--show $(arg show_lane) --method $(arg method)" name="lane" output="screen" type="lane.py" required="true"/>
-<!-- <node pkg="control" args="--show $(arg show_sign)" name="sign" output="screen" type="sign_onnx.py" required="true"/> -->
 </launch>
