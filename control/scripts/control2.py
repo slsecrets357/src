@@ -12,6 +12,9 @@ import math
 import os
 import json
 # import cv2
+import serial
+from output.src.SerialHandler.filehandler import FileHandler
+from output.src.SerialHandler.messageconverter import MessageConverter
 
 class StateMachine():
     #initialization
@@ -177,9 +180,12 @@ class StateMachine():
 
         #enable encoder at the start to get messages from automobile/encoder
         self.msg.data = '{"action":"5","activate": true}'
-        self.cmd_vel_pub.publish(self.msg)
-        self.cmd_vel_pub.publish(self.msg)
-        self.cmd_vel_pub.publish(self.msg)
+        # self.cmd_vel_pub.publish(self.msg)
+        # self.cmd_vel_pub.publish(self.msg)
+        # self.cmd_vel_pub.publish(self.msg)
+        self._write(self.msg)
+        self._write(self.msg)
+        self._write(self.msg)
 
         # timer to stop before parking
         self.timerP = None
@@ -204,6 +210,39 @@ class StateMachine():
         self.parksize = 0
 
         self.pl = 320 # previous lane center
+
+        # serialNODE
+        """It forwards the control messages received from socket to the serial handling node. 
+        """
+        devFile = '/dev/ttyACM0'
+        logFile = 'historyFile.txt'
+        
+        # comm init       
+        self.serialCom = serial.Serial(devFile,19200,timeout=0.1)
+        self.serialCom.flushInput()
+        self.serialCom.flushOutput()
+
+        # log file init
+        self.historyFile = FileHandler(logFile)
+        
+        # message converted init
+        self.messageConverter = MessageConverter()
+        
+        self.buff=""
+        self.isResponse=False    
+
+    def _write(self, msg):
+        """ Represents the writing activity on the the serial.
+        """
+        command = json.loads(msg.data)
+        # print("hh", type(command), type(msg), type(msg.data))
+        # print(msg)
+        # print(command)
+        # Unpacking the dictionary into action and values
+        command_msg = self.messageConverter.get_command(**command)
+        
+        self.serialCom.write(command_msg.encode('ascii'))
+        self.historyFile.write(command_msg)
     
     #callback function
     def callback(self,lane,sign,imu,encoder):
@@ -305,7 +344,8 @@ class StateMachine():
                 elif self.toggle == 2:
                     self.toggle = 0
                     self.msg.data = '{"action":"5","activate": true}'
-                self.cmd_vel_pub.publish(self.msg)
+                # self.cmd_vel_pub.publish(self.msg)
+                self._write(self.msg)
                 return 0
         elif self.state == 11: #parked
             if self.exitDecI == 1:
@@ -936,26 +976,33 @@ class StateMachine():
         # print("straight at: "+str(speed))
         self.msg.data = '{"action":"1","speed":'+str(speed)+'}'
         self.msg2.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
-        self.cmd_vel_pub.publish(self.msg)
-        self.cmd_vel_pub.publish(self.msg2)
+        # self.cmd_vel_pub.publish(self.msg)
+        # self.cmd_vel_pub.publish(self.msg2)
+        self._write(self.msg)
+        self._write(self.msg2)
     def left(self,speed):
         # self.cmd_vel_pub(-23, speed)
         # print("left at: "+str(speed))
         self.msg.data = '{"action":"1","speed":'+str(speed)+'}'
         self.msg2.data = '{"action":"2","steerAngle":'+str(-23.0)+'}'
-        self.cmd_vel_pub.publish(self.msg)
-        self.cmd_vel_pub.publish(self.msg2)
+        # self.cmd_vel_pub.publish(self.msg)
+        # self.cmd_vel_pub.publish(self.msg2)
+        self._write(self.msg)
+        self._write(self.msg2)
     def right(self,speed):
         # self.cmd_vel_pub(23, speed)
         # print("right at: "+str(speed))
         self.msg.data = '{"action":"1","speed":'+str(speed)+'}'
         self.msg2.data = '{"action":"2","steerAngle":'+str(23.0)+'}'
-        self.cmd_vel_pub.publish(self.msg)
-        self.cmd_vel_pub.publish(self.msg2)
+        # self.cmd_vel_pub.publish(self.msg)
+        # self.cmd_vel_pub.publish(self.msg2)
+        self._write(self.msg)
+        self._write(self.msg2)
     def idle(self):
         # self.cmd_vel_pub(0.0, 0.0)
         self.msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
-        self.cmd_vel_pub.publish(self.msg)
+        # self.cmd_vel_pub.publish(self.msg)
+        self._write(self.msg)
 
     #helper functions
     def pid(self, error):
@@ -1054,8 +1101,10 @@ class StateMachine():
             steering_angle = np.clip(steering_angle, -0.4, 0.4)
         self.msg.data = '{"action":"1","speed":'+str(velocity)+'}'
         self.msg2.data = '{"action":"2","steerAngle":'+str(steering_angle*180/np.pi)+'}'
-        self.cmd_vel_pub.publish(self.msg)
-        self.cmd_vel_pub.publish(self.msg2)
+        # self.cmd_vel_pub.publish(self.msg)
+        # self.cmd_vel_pub.publish(self.msg2)
+        self._write(self.msg)
+        self._write(self.msg2)
 
 if __name__ == '__main__':
     node = StateMachine()

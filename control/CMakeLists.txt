@@ -141,9 +141,9 @@ include_directories(
 # add_executable(control2
 #   src/control2.cpp
 # )
-# add_executable(lane
-#   src/lane.cpp
-# )
+add_executable(cameraExample
+  src/cameraExample.cpp
+)
 # add_executable(sign
 #   src/sign.cpp
 # )
@@ -162,9 +162,9 @@ include_directories(
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(control2
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(cameraExample
+  ${catkin_LIBRARIES}
+)
 # target_link_libraries(lane
 #   ${catkin_LIBRARIES}
 # )
