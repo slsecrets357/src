@@ -13,7 +13,12 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   message_generation
+  image_transport
+  cv_bridge
+  sensor_msgs
 )
+find_package(OpenCV REQUIRED)
+include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -108,7 +113,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES control
- CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs message_runtime
+ CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs message_runtime image_transport cv_bridge sensor_msgs opencv2
 #  DEPENDS system_lib
 )
 
@@ -119,10 +124,30 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  "include"
+  src/include 
+  include/ncnn
   ${catkin_INCLUDE_DIRS}
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/control/src/include
+  ${OpenCV_INCLUDE_DIRS}
 )
 
+# set(CMAKE_PREFIX_PATH  /home/pi/Documents/ncnn/build/install ${CMAKE_PREFIX_PATH})
+
+find_package(ncnn REQUIRED)
+if (${ncnn_FOUND})
+  message("-- NCNN found.")
+  message("-- NCNN_VULKAN flag is ${NCNN_VULKAN}")
+  if (${NCNN_VULKAN})
+    message("-- AUTO-ENABLING GPU_SUPPORT")
+    set(GPU_SUPPORT ON)
+  endif()
+  include_directories(${ncnn_INCLUDE})
+endif()
+
+find_package(OpenCV REQUIRED COMPONENTS
+  core highgui imgproc imgcodecs
+)
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/control.cpp
@@ -141,9 +166,23 @@ include_directories(
 # add_executable(control2
 #   src/control2.cpp
 # )
+add_executable(cameraNode
+  src/cameraNode.cpp
+  src/include/raspicam/raspicam_cv.cpp
+  src/yolo-fastestv2.cpp
+)
 add_executable(cameraExample
   src/cameraExample.cpp
+  src/yolo-fastestv2.cpp
 )
+add_executable(lane
+  src/lane.cpp
+)
+add_executable(signFastest
+  src/signFastest.cpp
+  src/yolo-fastestv2.cpp
+)
+
 # add_executable(sign
 #   src/sign.cpp
 # )
@@ -162,8 +201,21 @@ add_executable(cameraExample
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(cameraExample
+target_link_libraries(cameraNode
   ${catkin_LIBRARIES}
+  ncnn ${OpenCV_LIBS}
+  raspicam
+)
+target_link_libraries(cameraExample
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+  ncnn ${OpenCV_LIBS}
+)
+target_link_libraries(lane
+  ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
+)
+target_link_libraries(signFastest
+  ${catkin_LIBRARIES}
+  ncnn ${OpenCV_LIBS}
 )
 # target_link_libraries(lane
 #   ${catkin_LIBRARIES}
@@ -186,9 +238,9 @@ target_link_libraries(cameraExample
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   scripts/lane.py
-  scripts/sign.py
-  scripts/control.py
-  scripts/localization.py
+  # scripts/sign.py
+  scripts/control2.py
+  # scripts/localization.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

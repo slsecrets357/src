@@ -4,6 +4,7 @@ int32[] objects
 float32[] box1
 float32[] box2
 int32 num
+float32[] confidence
 # int32 obj1
 # float32 left1
 # float32 top1
