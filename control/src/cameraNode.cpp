@@ -140,8 +140,8 @@ static void signDetectionCallback(const ros::TimerEvent& event, yoloFastestv2 *a
 int main(int argc, char** argv) {
     ros::init(argc, argv, "object_detector");
     yoloFastestv2 api;
-    api.loadModel("/home/simonli/Documents/Simulator/src/control/src/model/alice7s-opt.param",
-                  "/home/simonli/Documents/Simulator/src/control/src/model/alice7s-opt.bin");
+    api.loadModel("/home/pi/Documents/Brain_ROS/src/control/src/model/alice7s-opt.param",
+                  "/home/pi/Documents/Brain_ROS/src/control/src/model/alice7s-opt.bin");
     ros::NodeHandle nh;
     ros::Publisher lane_pub = nh.advertise<utils::Lane>("lane", 3);
     ros::Publisher sign_pub = nh.advertise<utils::Sign>("sign", 3);
@@ -151,11 +151,11 @@ int main(int argc, char** argv) {
     ros::Timer sign_timer = nh.createTimer(ros::Duration(1.0 / sign_pub_rate), [&](const ros::TimerEvent& event) { signDetectionCallback(event, &api, &sign_pub); });
 
     raspicam::RaspiCam_Cv camera_;
-    camera_.set(cv::CAP_PROP_FRAME_WIDTH, imgSize.width);
-    camera_.set(cv::CAP_PROP_FRAME_HEIGHT, imgSize.height);
-    camera_.set(cv::CAP_PROP_FPS, 15);
-    camera_.set(cv::CAP_PROP_BRIGHTNESS, 42);
-    camera_.set(cv::CAP_PROP_FORMAT, CV_8UC1);
+    // camera_.set(cv::CAP_PROP_FRAME_WIDTH, imgSize.width);
+    // camera_.set(cv::CAP_PROP_FRAME_HEIGHT, imgSize.height);
+    // camera_.set(cv::CAP_PROP_FPS, 15);
+    // camera_.set(cv::CAP_PROP_BRIGHTNESS, 42);
+    // camera_.set(cv::CAP_PROP_FORMAT, CV_8UC3);
 
     if (!camera_.open()) {
         ROS_ERROR("Failed to open the camera.");

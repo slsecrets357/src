@@ -1,5 +1,5 @@
 <launch>
-    <!-- <node pkg="input" type="cameraNODE.py" 				name="camaeraNODE"  			output="screen"/> -->
+    <node pkg="input" type="cameraNODE.py" 				name="camaeraNODE"  			output="screen"/>
     <node pkg="input" type="imuNODE.py" 				name="imuNODE"  				output="screen"/>
     <node pkg="input" type="encoderNODE.py" 		    name="encodeNODE"  				output="screen"/>
     <node pkg="output" type="serialNODE.py" 			name="serialNODE"  				output="screen"/>
