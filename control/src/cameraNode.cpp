@@ -108,14 +108,19 @@ double optimized_histogram(cv::Mat image, bool show = false) {
 }
 
 static void laneDetectionCallback(const ros::TimerEvent& event, ros::Publisher *pub) {
+    auto start = high_resolution_clock::now();
     double center = optimized_histogram(cv_image);
     utils::Lane lane_msg;
     lane_msg.center = center;
     lane_msg.stopline = stopline;
     lane_msg.header.stamp = ros::Time::now();
     pub->publish(lane_msg);
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
+    std::cout << "lane durations: " << duration.count() << std::endl;
 }
 static void signDetectionCallback(const ros::TimerEvent& event, yoloFastestv2 *api, ros::Publisher *pub) {
+    auto start = high_resolution_clock::now();
     std::vector<TargetBox> boxes;
     api->detection(cv_image, boxes);
 
@@ -135,6 +140,9 @@ static void signDetectionCallback(const ros::TimerEvent& event, yoloFastestv2 *a
     }
     // Publish Sign message
     pub->publish(sign_msg);
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
+    std::cout << "sign durations: " << duration.count() << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -168,7 +176,9 @@ int main(int argc, char** argv) {
     while(ros::ok()) {
         camera_.grab();
         camera_.retrieve(cv_image);
-        cv::cvtColor(cv_image, cv_image, cv::COLOR_BGR2RGB);
+        // cv::cvtColor(cv_image, cv_image, cv::COLOR_BGR2RGB);
+        cv::imshow("Camera", cv_image);
+        cv::waitKey(1);
         ros::spinOnce();
     }
     camera_.release();
