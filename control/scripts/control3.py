@@ -18,8 +18,8 @@ import argparse
 import sys
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from trackmap import track_map
-from output.src.SerialHandler.filehandler import FileHandler
-from output.src.SerialHandler.messageconverter import MessageConverter
+# from output.src.SerialHandler.filehandler import FileHandler
+from messageconverter import MessageConverter
 import serial
 
 class StateMachine():
