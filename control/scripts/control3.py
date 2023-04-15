@@ -1,25 +1,19 @@
 #!/usr/bin/env python3
 import rospy
 import numpy as np
-from message_filters import ApproximateTimeSynchronizer
 from std_msgs.msg import String, Byte
-from utils.msg import Lane, Sign, localisation, IMU, encoder, Sensors
-import message_filters
+from utils.msg import Lane, Sign, localisation, IMU, Sensors
 import time
 import math
 
 import cv2
 import os
 import json
-import threading
 import argparse
 
 import sys
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from trackmap import track_map
-# from output.src.SerialHandler.filehandler import FileHandler
-from messageconverter import MessageConverter
-import serial
 
 class StateMachine():
     #initialization
@@ -120,7 +114,6 @@ class StateMachine():
 
         #timers
         self.timer = None
-        self.timer2 = None
         self.timer3 = None
 
         #intersection & parking
@@ -166,13 +159,9 @@ class StateMachine():
         rospy.init_node('lane_follower_node', anonymous=True)
         self.timer4 = rospy.Time.now()
         self.timer5 = rospy.Time.now()
-        self.timer6 = rospy.Time.now()
         self.odomTimer = rospy.Time.now()
-        self.t2 = rospy.Time.now()
-        self.t3 = rospy.Time.now()
-        self.t4 = rospy.Time.now()
-        self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
-        self.rate = rospy.Rate(50)
+        # self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
+        # self.rate = rospy.Rate(50)
         self.dt = 1/50 #for PID
 
         # Create service proxy
@@ -413,13 +402,13 @@ class StateMachine():
             else:
                 self.carBlockSem -= 1
                 if self.carBlockSem == 0:
-                    self.timerO = None
+                    self.timer = None
                     return 0
-            if self.timerO == None:
-                self.timerO = rospy.Time.now() + rospy.Duration(1.57)
+            if self.timer is None:
+                self.timer = rospy.Time.now() + rospy.Duration(1.57)
                 print("prepare to overtake")
-            elif rospy.Time.now() >= self.timerO:
-                self.timerO = None
+            elif rospy.Time.now() >= self.timer:
+                self.timer = None
                 self.carBlockSem = -1
                 self.history = self.state
                 self.state = 7
@@ -653,14 +642,14 @@ class StateMachine():
             else:
                 self.carBlockSem -= 1
                 if self.carBlockSem == 0:
-                    self.timerO = None
+                    self.timer = None
                     return 0
-            if self.timerO == None:
-                self.timerO = rospy.Time.now() + rospy.Duration(1.57)
+            if self.timer is None:
+                self.timer = rospy.Time.now() + rospy.Duration(1.57)
                 print("prepare to overtake")
-            elif rospy.Time.now() >= self.timerO:
+            elif rospy.Time.now() >= self.timer:
                 self.carBlockSem = -1
-                self.timerO = None
+                self.timer = None
                 self.history = self.state
                 self.state = 7
                 return 1
