@@ -61,14 +61,6 @@ class StateMachine():
             self.maxspeed = 0.125
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
             #enable PID and encoder at the start to get messages from automobile/encoder
-            self.msg.data = '{"action":"5","activate": true}'
-            self._write(self.msg)
-            self._write(self.msg)
-            self._write(self.msg)
-            self.msg.data = '{"action":"4","activate": true}'
-            self._write(self.msg)
-            self._write(self.msg)
-            self._write(self.msg)
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
             #8:enterhwLeft, 9:enterhwStright, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
             self.decisions = [2,3,6,0,4]
@@ -262,6 +254,8 @@ class StateMachine():
             self.decisions = self.track_map.directions
             self.decisionsI = 0
         # serialNODE
+        from messageconverter import MessageConverter
+        import serial
         """It forwards the control messages received from socket to the serial handling node. 
         """
         devFile = '/dev/ttyACM0'
@@ -278,7 +272,7 @@ class StateMachine():
         # message converted init
         self.messageConverter = MessageConverter()
         # self.buff=""
-        # self.isResponse=False    
+        # self.isResponse=False
 
         self.callback_thread = threading.Thread(target=self.run_callback)
         self.action_thread = threading.Thread(target=self.run_action)
@@ -432,6 +426,10 @@ class StateMachine():
                 self.state = 0
                 return 1
             else:
+                self.msg.data = '{"action":"5","activate": true}'
+                self._write(self.msg)
+                self.msg.data = '{"action":"4","activate": true}'
+                self._write(self.msg)
                 return 0
         elif self.state == 11: #parked
             if self.decisionsI >= len(self.decisions):

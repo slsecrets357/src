@@ -3,6 +3,7 @@ std_msgs/Header header
 int32[] objects
 float32[] box1
 float32[] box2
+float32[] box3
 int32 num
 float32[] confidence
 # int32 obj1
