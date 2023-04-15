@@ -31,8 +31,7 @@ yoloFastestv2::yoloFastestv2()
     printf("inputWidth:%d inputHeight:%d\n", inputWidth, inputHeight);
 
     //anchor box w h
-    std::vector<float> bias {12.64,19.39, 37.88,51.48, 55.71,138.31, 
-                             126.91,78.23, 131.57,214.55, 279.92,258.87};
+    std::vector<float> bias {21.82,34.65, 27.57,73.36, 41.74,49.52, 52.94,116.62, 90.77,60.51, 132.37,97.67};
 
     anchor.assign(bias.begin(), bias.end());
 }
