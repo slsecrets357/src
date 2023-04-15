@@ -3,8 +3,7 @@ import rospy
 import numpy as np
 from message_filters import ApproximateTimeSynchronizer
 from std_msgs.msg import String, Byte
-from utils.msg import Lane, Sign, localisation, IMU, encoder
-from utils.srv import get_direction, dotted, nav
+from utils.msg import Lane, Sign, localisation, IMU, encoder, Sensors
 import message_filters
 import time
 import math
@@ -187,19 +186,9 @@ class StateMachine():
         self.lane_sub = rospy.Subscriber('lane', Lane, self.lane_callback, queue_size=3)
         self.sign_sub = rospy.Subscriber('sign', Sign, self.sign_callback, queue_size=3)
         # self.localization_sub = message_filters.Subscriber("/automobile/localisation", localisation, queue_size=3)
-        self.imu_sub = rospy.Subscriber("/automobile/IMU", IMU, self.imu_callback, queue_size=3)
-        self.encoder_sub = rospy.Subscriber("/automobile/encoder", encoder, self.encoder_callback, queue_size=3)
-        self.lock = threading.Lock()
-        # self.subscribers = []
-        # self.subscribers.append(self.lane_sub)
-        # self.subscribers.append(self.sign_sub)
-        # # self.subscribers.append(self.localization_sub)
-        # self.subscribers.append(self.imu_sub)
-        # self.subscribers.append(self.encoder_sub)
-        
-        # Create an instance of TimeSynchronizer
-        # ts = ApproximateTimeSynchronizer(self.subscribers, queue_size=3, slop=1.15)
-        # ts.registerCallback(self.callback)
+        self.sensors_sub = rospy.Subscriber("/automobile/sensors", Sensors, self.sensors_callback, queue_size=3)
+        # self.imu_sub = rospy.Subscriber("/automobile/IMU", IMU, self.imu_callback, queue_size=3)
+        # self.encoder_sub = rospy.Subscriber("/automobile/encoder", encoder, self.encoder_callback, queue_size=3)
 
         #stop at shutdown
         def shutdown():
@@ -259,34 +248,19 @@ class StateMachine():
         """It forwards the control messages received from socket to the serial handling node. 
         """
         devFile = '/dev/ttyACM0'
-        logFile = 'historyFile.txt'
         
         # comm init       
         self.serialCom = serial.Serial(devFile,19200,timeout=0.1)
         self.serialCom.flushInput()
         self.serialCom.flushOutput()
-
-        # log file init
-        # self.historyFile = FileHandler(logFile)
         
         # message converted init
-        self.messageConverter = MessageConverter()
-        # self.buff=""
-        # self.isResponse=False
-
-        self.callback_thread = threading.Thread(target=self.run_callback)
-        self.action_thread = threading.Thread(target=self.run_action)
-        self.callback_thread.start()
-        self.action_thread.start()
+        self.messageConverter = MessageConverter()  
     
     def _write(self, msg):
         """ Represents the writing activity on the the serial.
         """
         command = json.loads(msg.data)
-        # print("hh", type(command), type(msg), type(msg.data))
-        # print(msg)
-        # print(command)
-        # Unpacking the dictionary into action and values
         command_msg = self.messageConverter.get_command(**command)
         self.serialCom.write(command_msg.encode('ascii'))
         # self.historyFile.write(command_msg)
@@ -298,19 +272,8 @@ class StateMachine():
             newYaw = -((yaw-self.initialYaw)*3.14159/180)
             self.yaw = newYaw if newYaw>0 else (6.2831853+newYaw)
 
-    def run_callback(self):
-        rospy.spin()
-    def run_action(self):
-        while not rospy.is_shutdown():
-            act = self.action()
-            if int(act)==1:
-                print(f"-----transitioning to '{self.states[self.state]}'-----")
-                if self.state==0:
-                    print("Speed is at "+str(self.maxspeed)+"m/s")
-            self.rate.sleep()
-    #callback function
+    #callback functions
     def lane_callback(self,lane):
-        self.lock.acquire()
         self.center = lane.center
         self.ArrivedAtStopline = lane.stopline
         # if there's a big shift in lane center: ignore due to delay
@@ -323,69 +286,25 @@ class StateMachine():
             self.pl = c
         else:
             self.pl = self.center
-        self.lock.release()
+        act = self.action()
+        if int(act)==1:
+            print(f"-----transitioning to '{self.states[self.state]}'-----")
+            if self.state==0:
+                print("Speed is at "+str(self.maxspeed)+"m/s")
     def sign_callback(self,sign):
-        self.lock.acquire()
         self.detected_objects = sign.objects
         self.numObj = sign.num
         self.box1 = sign.box1
         self.box2 = sign.box2
         self.box3 = sign.box3
         self.confidence = sign.confidence
-        self.lock.release()
-    def encoder_callback(self,encoder):
-        self.lock.acquire()
-        self.velocity = encoder.speed
-        self.lock.release()
-    def imu_callback(self,imu):
-        self.lock.acquire()
-        self.process_yaw(imu.yaw)
-        self.lock.release()
-    # def callback(self,lane,sign,imu,encoder):
-
-    #     self.dt = (rospy.Time.now()-self.timer6).to_sec()
-    #     self.timer6 = rospy.Time.now()
-
-    #     # Perform decision making tasks
-
-    #     # self.x = localization.posA
-    #     # self.y = 15.0-localization.posB
-    #     self.process_yaw(imu.yaw)
+    def sensors_callback(self,sensors):
+        self.velocity = sensors.speed
+        self.process_yaw(sensors.yaw)
+    # def encoder_callback(self,encoder):
     #     self.velocity = encoder.speed
-    #     self.center = lane.center
-    #     self.ArrivedAtStopline = lane.stopline
-    #     self.detected_objects = sign.objects
-    #     self.numObj = sign.num
-    #     self.box1 = sign.box1
-    #     self.box2 = sign.box2
-
-    #     # if there's a big shift in lane center: ignore due to delay
-    #     if abs(self.center-self.pl)>250:
-    #         self.center = self.pl
-
-    #     # ignore one center measurement when we don't detect
-    #     if self.center==320:
-    #         c = self.center
-    #         self.center = self.pl
-    #         self.pl = c
-    #     else:
-    #         self.pl = self.center
-        # print(self.center)
-
-        # print("x,y,yaw,velocity,center,stopline: ", self.x, self.y, self.yaw, self.velocity, self.center, self.ArrivedAtStopline)
-        # for i in range(self.numObj):
-        #     if i == 0:
-        #         print(self.numObj)
-        #         print(f"{self.class_names[self.detected_objects[i]]} detected! width, height: {self.box1[2]}, {self.box1[3]}")
-        #     elif i == 1:
-        #         print(f"{self.class_names[self.detected_objects[i]]} detected! width, height: {self.box2[2]}, {self.box2[3]}")
-        #     else:
-        #         print(f"{self.class_names[self.detected_objects[i]]} detected!")
-        # if int(self.action())==1:
-        #     print(f"-----transitioning to '{self.states[self.state]}'-----")
-        #     if self.state==0:
-        #         # self.pl = 320
-        #         print("Speed is at "+str(self.maxspeed)+"m/s")
+    # def imu_callback(self,imu):
+    #     self.process_yaw(imu.yaw)
     
     #state machine
     def action(self):
@@ -1536,6 +1455,4 @@ if __name__ == '__main__':
     else:
         c = False
     node = StateMachine(simulation=s,planned_path=args.path,custom_path=c)
-    # rospy.spin()
-    node.callback_thread.join()
-    node.action_thread.join()
+    rospy.spin()
