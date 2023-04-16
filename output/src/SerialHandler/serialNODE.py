@@ -146,8 +146,8 @@ class serialNODE():
         """
         command = json.loads(msg.data)
         # print("hh", type(command), type(msg), type(msg.data))
-        # print(msg)
-        # print(command)
+        print(msg)
+        print(command)
         # Unpacking the dictionary into action and values
         command_msg = self.messageConverter.get_command(**command)
         

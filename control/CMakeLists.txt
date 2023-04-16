@@ -171,6 +171,11 @@ add_executable(cameraNode
   src/include/raspicam/raspicam_cv.cpp
   src/yolo-fastestv2.cpp
 )
+add_executable(cameraNode2
+  src/cameraNode2.cpp
+  src/include/raspicam/raspicam_cv.cpp
+  src/yolo-fastestv2.cpp
+)
 add_executable(cameraExample
   src/cameraExample.cpp
   src/yolo-fastestv2.cpp
@@ -202,6 +207,11 @@ add_executable(signFastest
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(cameraNode
+  ${catkin_LIBRARIES}
+  ncnn ${OpenCV_LIBS}
+  raspicam
+)
+target_link_libraries(cameraNode2
   ${catkin_LIBRARIES}
   ncnn ${OpenCV_LIBS}
   raspicam

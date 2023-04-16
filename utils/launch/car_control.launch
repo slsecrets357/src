@@ -1,0 +1,13 @@
+<launch>
+    <arg name="simulation"  default="False" doc="Simulation mode (True or False)"/>
+    <arg name="path"  default="/paths/path.json" doc="the relative json file path to the planned path"/>
+    <arg name="custom"  default="False" doc="user input map (True or False)"/>
+    
+    <node pkg="control" args="--simulation $(arg simulation) --path $(arg path) --custom $(arg custom)" type="control3.py" 		        name="controlNODE"  				output="screen"/>
+    <node pkg="control" type="cameraNode2" 				name="camaeraNODE"  			output="screen"/>
+    <node pkg="input" type="sensors.py" 				name="sensorNODE"  				output="screen"/>
+    <!-- <node pkg="input" type="gpstrackerNODE.py"			name="gpstrackerNODE"  			output="screen"/> -->
+    <!-- <node pkg="input" type="semaphoreNODE.py" 			name="semaphoreNODE"  			output="screen"/> -->
+    <!-- <node pkg="input" type="vehicletovehicleNODE.py" 	name="vehicletovehicleNODE"  	output="screen"/> -->
+    <!-- <node pkg="output" type="environmentalNODE.py" 		name="environmentalNODE"  		output="screen"/>  -->
+</launch>

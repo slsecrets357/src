@@ -142,6 +142,7 @@ class CombinedNODE():
             # msg.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
             self._write(self.msg)
             time.sleep(0.1)
+        # self.serialCom.open()
 
     
     def _write(self, msg):

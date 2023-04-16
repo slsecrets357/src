@@ -108,19 +108,19 @@ double optimized_histogram(cv::Mat image, bool show = false) {
 }
 
 static void laneDetectionCallback(const ros::TimerEvent& event, ros::Publisher *pub) {
-    auto start = high_resolution_clock::now();
+    // auto start = high_resolution_clock::now();
     double center = optimized_histogram(cv_image);
     utils::Lane lane_msg;
     lane_msg.center = center;
     lane_msg.stopline = stopline;
     lane_msg.header.stamp = ros::Time::now();
     pub->publish(lane_msg);
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    std::cout << "lane durations: " << duration.count() << std::endl;
+    // auto stop = high_resolution_clock::now();
+    // auto duration = duration_cast<microseconds>(stop - start);
+    // std::cout << "lane durations: " << duration.count() << std::endl;
 }
 static void signDetectionCallback(const ros::TimerEvent& event, yoloFastestv2 *api, ros::Publisher *pub) {
-    auto start = high_resolution_clock::now();
+    // auto start = high_resolution_clock::now();
     std::vector<TargetBox> boxes;
     api->detection(cv_image, boxes);
 
@@ -154,9 +154,9 @@ static void signDetectionCallback(const ros::TimerEvent& event, yoloFastestv2 *a
     }
     // Publish Sign message
     pub->publish(sign_msg);
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
-    std::cout << "sign durations: " << duration.count() << std::endl;
+    // auto stop = high_resolution_clock::now();
+    // auto duration = duration_cast<microseconds>(stop - start);
+    // std::cout << "sign durations: " << duration.count() << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -167,8 +167,8 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh;
     ros::Publisher lane_pub = nh.advertise<utils::Lane>("lane", 3);
     ros::Publisher sign_pub = nh.advertise<utils::Sign>("sign", 3);
-    double lane_pub_rate = 5.0; // Adjust this value for lane_pub rate
-    double sign_pub_rate = 2.0;
+    double lane_pub_rate = 30.0; // Adjust this value for lane_pub rate
+    double sign_pub_rate = 1.0;
     ros::Timer lane_timer = nh.createTimer(ros::Duration(1.0 / lane_pub_rate), [&](const ros::TimerEvent& event) { laneDetectionCallback(event, &lane_pub); });
     ros::Timer sign_timer = nh.createTimer(ros::Duration(1.0 / sign_pub_rate), [&](const ros::TimerEvent& event) { signDetectionCallback(event, &api, &sign_pub); });
 
@@ -191,8 +191,8 @@ int main(int argc, char** argv) {
         camera_.grab();
         camera_.retrieve(cv_image);
         // cv::cvtColor(cv_image, cv_image, cv::COLOR_BGR2RGB);
-        cv::imshow("Camera", cv_image);
-        cv::waitKey(1);
+        // cv::imshow("Camera", cv_image);
+        // cv::waitKey(1);
         ros::spinOnce();
     }
     camera_.release();

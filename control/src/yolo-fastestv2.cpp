@@ -9,7 +9,7 @@ yoloFastestv2::yoloFastestv2()
     //输出节点数
     numOutput = 2;
     //推理线程数
-    numThreads = 1;
+    numThreads = 4;
     //anchor num
     numAnchor = 3;
     //类别数目
@@ -31,11 +31,7 @@ yoloFastestv2::yoloFastestv2()
     printf("inputWidth:%d inputHeight:%d\n", inputWidth, inputHeight);
 
     //anchor box w h
-<<<<<<< HEAD
-    std::vector<float> bias {21.78,35.21, 28.56,77.20, 40.49,48.97, 53.73,115.37, 89.65,59.67, 132.05,96.25};
-=======
     std::vector<float> bias {21.82,34.65, 27.57,73.36, 41.74,49.52, 52.94,116.62, 90.77,60.51, 132.37,97.67};
->>>>>>> bf350f7aa9d2b6ff9731ff1d0ca92a6c59cef34b
 
     anchor.assign(bias.begin(), bias.end());
 }

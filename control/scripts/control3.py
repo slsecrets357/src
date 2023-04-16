@@ -18,6 +18,29 @@ from trackmap import track_map
 class StateMachine():
     #initialization
     def __init__(self, simulation = True, planned_path = "/paths/path.json", custom_path = False):
+        rospy.init_node('lane_follower_node', anonymous=True)
+        self.timer4 = rospy.Time.now()
+        self.timer5 = rospy.Time.now()
+        self.odomTimer = rospy.Time.now()
+        self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
+        # self.rate = rospy.Rate(50)
+        self.dt = 1/50 #for PID
+
+        # serialNODE
+        # from messageconverter import MessageConverter
+        # import serial
+        # """It forwards the control messages received from socket to the serial handling node. 
+        # """
+        # devFile = '/dev/ttyACM0'
+        
+        # # comm init       
+        # self.serialCom = serial.Serial(devFile,19200,timeout=0.1)
+        # self.serialCom.flushInput()
+        # self.serialCom.flushOutput()
+        
+        # message converted init
+        # self.messageConverter = MessageConverter()  
+        
         #simulation
         self.simulation = simulation
         if self.simulation:
@@ -37,11 +60,13 @@ class StateMachine():
                 self.track_map.custum_path()
         else:
             # get initial yaw from IMU
+            print("hello real world")
             self.initialYaw = 0
-            while self.initialYaw==0:
-                imu = rospy.wait_for_message("/automobile/IMU",IMU)
-                self.initialYaw = imu.yaw
-                print("initialYaw: "+str(self.initialYaw))
+            # while self.initialYaw==0:
+            #     print("self initialyaw is 0!!")
+            #     sensorData = rospy.wait_for_message("automobile/sensors",Sensors)
+            #     self.initialYaw = sensorData.yaw
+            #     print("initialYaw: "+str(self.initialYaw))
             print("Real mode")
             self.odomRatio = 0.0066
             self.process_yaw = self.process_yaw_real
@@ -57,6 +82,11 @@ class StateMachine():
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
             #8:enterhwLeft, 9:enterhwStright, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
             self.decisions = [2,3,6,0,4]
+            # self.x = 0
+            # self.y = 0
+            # self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
+            # self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
+            # self.track_map.plan_path()
             self.decisionsI = 0
         #states
         self.states = ['Lane Following', "Approaching Intersection", "Stopping at Intersection", 
@@ -156,13 +186,7 @@ class StateMachine():
         """
         Initialize the lane follower node
         """
-        rospy.init_node('lane_follower_node', anonymous=True)
-        self.timer4 = rospy.Time.now()
-        self.timer5 = rospy.Time.now()
-        self.odomTimer = rospy.Time.now()
-        # self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
-        # self.rate = rospy.Rate(50)
-        self.dt = 1/50 #for PID
+        
 
         # Create service proxy
         # self.get_dir = rospy.ServiceProxy('get_direction',get_direction)
@@ -178,19 +202,18 @@ class StateMachine():
         self.sensors_sub = rospy.Subscriber("/automobile/sensors", Sensors, self.sensors_callback, queue_size=3)
         # self.imu_sub = rospy.Subscriber("/automobile/IMU", IMU, self.imu_callback, queue_size=3)
         # self.encoder_sub = rospy.Subscriber("/automobile/encoder", encoder, self.encoder_callback, queue_size=3)
-
+        print("created subscribers")
         #stop at shutdown
         def shutdown():
-            pub = rospy.Publisher("/automobile/command", String, queue_size=3)
             msg = String()
             msg2 = String()
-            # msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
-            msg.data = '{"action":"1","speed":'+str(0.0)+'}'
-            msg2.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
+            msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
+            # msg.data = '{"action":"1","speed":'+str(0.0)+'}'
+            # msg2.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
             for haha in range(3):
-                pub.publish(msg2)
-                pub.publish(msg)
-                self.rate.sleep()
+                # self._write(msg)
+                self.cmd_vel_pub.publish(msg)
+                # self.rate.sleep()
         
         rospy.on_shutdown(shutdown)
 
@@ -231,28 +254,16 @@ class StateMachine():
             #8:enterHWLeft, 9:enterHWStraight, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
             self.decisions = self.track_map.directions
             self.decisionsI = 0
-        # serialNODE
-        from messageconverter import MessageConverter
-        import serial
-        """It forwards the control messages received from socket to the serial handling node. 
-        """
-        devFile = '/dev/ttyACM0'
-        
-        # comm init       
-        self.serialCom = serial.Serial(devFile,19200,timeout=0.1)
-        self.serialCom.flushInput()
-        self.serialCom.flushOutput()
-        
-        # message converted init
-        self.messageConverter = MessageConverter()  
     
-    def _write(self, msg):
-        """ Represents the writing activity on the the serial.
-        """
-        command = json.loads(msg.data)
-        command_msg = self.messageConverter.get_command(**command)
-        self.serialCom.write(command_msg.encode('ascii'))
-        # self.historyFile.write(command_msg)
+    # def _write(self, msg):
+    #     """ Represents the writing activity on the the serial.
+    #     """
+    #     # print("write")
+    #     print(msg.data)
+    #     command = json.loads(msg.data)
+    #     command_msg = self.messageConverter.get_command(**command)
+    #     self.serialCom.write(command_msg.encode('ascii'))
+    #     # self.historyFile.write(command_msg)
 
     def process_yaw_sim(self, yaw):
         self.yaw = yaw if yaw>0 else (6.2831853+yaw)
@@ -335,9 +346,11 @@ class StateMachine():
                 return 1
             else:
                 self.msg.data = '{"action":"5","activate": true}'
-                self._write(self.msg)
+                # self._write(self.msg)
+                self.cmd_vel_pub.publish(self.msg)
                 self.msg.data = '{"action":"4","activate": true}'
-                self._write(self.msg)
+                # self._write(self.msg)
+                self.cmd_vel_pub.publish(self.msg)
                 return 0
         elif self.state == 11: #parked
             if self.decisionsI >= len(self.decisions):
@@ -1253,8 +1266,10 @@ class StateMachine():
         # self.cmd_vel_pub.publish(self.msg)
         self.msg.data = '{"action":"1","speed":'+str(0.0)+'}'
         self.msg2.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
-        self._write(self.msg)
-        self._write(self.msg2)
+        # self._write(self.msg)
+        # self._write(self.msg2)
+        self.cmd_vel_pub.publish(self.msg)
+        self.cmd_vel_pub.publish(self.msg2)
 
     #odom helper functions
     def pid(self, error):
@@ -1366,6 +1381,7 @@ class StateMachine():
         steering_angle = (error*self.p+d_error*self.d)
         return steering_angle
     def publish_cmd_vel(self, steering_angle, velocity = None, clip = True):
+        print(steering_angle)
         """
         Publish the steering command to the cmd_vel topic
         :param steering_angle: Steering angle in radians
@@ -1375,9 +1391,13 @@ class StateMachine():
         if clip:
             steering_angle = np.clip(steering_angle*180/np.pi, -22.9, 22.9)
         self.msg.data = '{"action":"1","speed":'+str(velocity)+'}'
-        self.msg2.data = '{"action":"2","steerAngle":'+str(float(steering_angle))+'}'
-        self._write(self.msg)
-        self._write(self.msg2)
+        self.msg2.data = '{"action":"2","steerAngle":'+str(float("{:.2f}".format(steering_angle)))+'}'
+        print(self.msg.data)
+        print(self.msg2.data)
+        # self._write(self.msg)
+        # self._write(self.msg2)
+        self.cmd_vel_pub.publish(self.msg)
+        self.cmd_vel_pub.publish(self.msg2)
 
     #PID tuning
     def trackbars(self):
@@ -1429,6 +1449,7 @@ class StateMachine():
         self.ki2 = v/1000
 
 if __name__ == '__main__':
+    print("starting")
     parser = argparse.ArgumentParser(description='State Machine for Robot Control.')
     parser.add_argument("--simulation", type=str, default=True, help="Run the robot in simulation or real life")
     parser.add_argument("--path", type=str, default="/paths/path.json", help="Planned path")
