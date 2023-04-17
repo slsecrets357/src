@@ -18,28 +18,13 @@ from trackmap import track_map
 class StateMachine():
     #initialization
     def __init__(self, simulation = True, planned_path = "/paths/path.json", custom_path = False):
-        rospy.init_node('lane_follower_node', anonymous=True)
+        rospy.init_node('control_node', anonymous=True)
         self.timer4 = rospy.Time.now()
         self.timer5 = rospy.Time.now()
         self.odomTimer = rospy.Time.now()
-        self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
-        # self.rate = rospy.Rate(50)
+        # self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
+        self.rate = rospy.Rate(25)
         self.dt = 1/50 #for PID
-
-        # serialNODE
-        # from messageconverter import MessageConverter
-        # import serial
-        # """It forwards the control messages received from socket to the serial handling node. 
-        # """
-        # devFile = '/dev/ttyACM0'
-        
-        # # comm init       
-        # self.serialCom = serial.Serial(devFile,19200,timeout=0.1)
-        # self.serialCom.flushInput()
-        # self.serialCom.flushOutput()
-        
-        # message converted init
-        # self.messageConverter = MessageConverter()  
         
         #simulation
         self.simulation = simulation
@@ -59,14 +44,25 @@ class StateMachine():
                 self.track_map = track_map()
                 self.track_map.custum_path()
         else:
+            # serialNODE
+            from messageconverter import MessageConverter
+            import serial
+            devFile = '/dev/ttyACM0'
+            
+            # comm init       
+            self.serialCom = serial.Serial(devFile,19200,timeout=0.1)
+            self.serialCom.flushInput()
+            self.serialCom.flushOutput()
+            
+            # message converted init
+            self.messageConverter = MessageConverter()  
+
             # get initial yaw from IMU
-            print("hello real world")
             self.initialYaw = 0
-            # while self.initialYaw==0:
-            #     print("self initialyaw is 0!!")
-            #     sensorData = rospy.wait_for_message("automobile/sensors",Sensors)
-            #     self.initialYaw = sensorData.yaw
-            #     print("initialYaw: "+str(self.initialYaw))
+            while self.initialYaw==0:
+                sensorData = rospy.wait_for_message("automobile/sensors",Sensors)
+                self.initialYaw = sensorData.yaw
+                print("initialYaw: "+str(self.initialYaw))
             print("Real mode")
             self.odomRatio = 0.0066
             self.process_yaw = self.process_yaw_real
@@ -82,8 +78,10 @@ class StateMachine():
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
             #8:enterhwLeft, 9:enterhwStright, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
             self.decisions = [2,3,6,0,4]
-            # self.x = 0
-            # self.y = 0
+            # loc = rospy.wait_for_message("/automobile/localisation",localisation)
+            # self.x = loc.posA
+            # self.y = loc.posB
+            # print("x,y,yaw",self.x,self.y,self.yaw)
             # self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
             # self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
             # self.track_map.plan_path()
@@ -183,10 +181,6 @@ class StateMachine():
         self.carCleared = None
         self.dotted = False
         self.ArrivedAtStopline = False
-        """
-        Initialize the lane follower node
-        """
-        
 
         # Create service proxy
         # self.get_dir = rospy.ServiceProxy('get_direction',get_direction)
@@ -202,18 +196,18 @@ class StateMachine():
         self.sensors_sub = rospy.Subscriber("/automobile/sensors", Sensors, self.sensors_callback, queue_size=3)
         # self.imu_sub = rospy.Subscriber("/automobile/IMU", IMU, self.imu_callback, queue_size=3)
         # self.encoder_sub = rospy.Subscriber("/automobile/encoder", encoder, self.encoder_callback, queue_size=3)
-        print("created subscribers")
+
         #stop at shutdown
         def shutdown():
             msg = String()
-            msg2 = String()
+            # msg2 = String()
             msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
             # msg.data = '{"action":"1","speed":'+str(0.0)+'}'
             # msg2.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
             for haha in range(3):
-                # self._write(msg)
-                self.cmd_vel_pub.publish(msg)
-                # self.rate.sleep()
+                self._write(msg)
+                # self.cmd_vel_pub.publish(msg)
+                self.rate.sleep()
         
         rospy.on_shutdown(shutdown)
 
@@ -231,7 +225,6 @@ class StateMachine():
         self.rdbTransf = 0
         self.timerO = None
         self.carBlockSem = -1
-        # self.trackbars()
 
         if self.simulation:
             imu = rospy.wait_for_message("/automobile/IMU",IMU)
@@ -255,15 +248,13 @@ class StateMachine():
             self.decisions = self.track_map.directions
             self.decisionsI = 0
     
-    # def _write(self, msg):
-    #     """ Represents the writing activity on the the serial.
-    #     """
-    #     # print("write")
-    #     print(msg.data)
-    #     command = json.loads(msg.data)
-    #     command_msg = self.messageConverter.get_command(**command)
-    #     self.serialCom.write(command_msg.encode('ascii'))
-    #     # self.historyFile.write(command_msg)
+    def _write(self, msg):
+        """ Represents the writing activity on the the serial.
+        """
+        # print(msg.data)
+        command = json.loads(msg.data)
+        command_msg = self.messageConverter.get_command(**command)
+        self.serialCom.write(command_msg.encode('ascii'))
 
     def process_yaw_sim(self, yaw):
         self.yaw = yaw if yaw>0 else (6.2831853+yaw)
@@ -316,7 +307,6 @@ class StateMachine():
             return self.stopInt()
         elif self.state == 3: #Intersection Maneuvering
             return self.maneuverInt()
-            # return self.maneuverIntHC()
         elif self.state == 4: #Approaching Crosswalk
             return self.approachCrosswalk()
         elif self.state == 5: #Pedestrian
@@ -346,11 +336,11 @@ class StateMachine():
                 return 1
             else:
                 self.msg.data = '{"action":"5","activate": true}'
-                # self._write(self.msg)
-                self.cmd_vel_pub.publish(self.msg)
+                self._write(self.msg)
+                # self.cmd_vel_pub.publish(self.msg)
                 self.msg.data = '{"action":"4","activate": true}'
-                # self._write(self.msg)
-                self.cmd_vel_pub.publish(self.msg)
+                self._write(self.msg)
+                # self.cmd_vel_pub.publish(self.msg)
                 return 0
         elif self.state == 11: #parked
             if self.decisionsI >= len(self.decisions):
@@ -1266,10 +1256,10 @@ class StateMachine():
         # self.cmd_vel_pub.publish(self.msg)
         self.msg.data = '{"action":"1","speed":'+str(0.0)+'}'
         self.msg2.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
-        # self._write(self.msg)
-        # self._write(self.msg2)
-        self.cmd_vel_pub.publish(self.msg)
-        self.cmd_vel_pub.publish(self.msg2)
+        self._write(self.msg)
+        self._write(self.msg2)
+        # self.cmd_vel_pub.publish(self.msg)
+        # self.cmd_vel_pub.publish(self.msg2)
 
     #odom helper functions
     def pid(self, error):
@@ -1390,63 +1380,14 @@ class StateMachine():
             velocity = self.maxspeed
         if clip:
             steering_angle = np.clip(steering_angle*180/np.pi, -22.9, 22.9)
-        self.msg.data = '{"action":"1","speed":'+str(velocity)+'}'
+        self.msg.data = '{"action":"1","speed":'+str(float("{:.4f}".format(velocity)))+'}'
         self.msg2.data = '{"action":"2","steerAngle":'+str(float("{:.2f}".format(steering_angle)))+'}'
         print(self.msg.data)
         print(self.msg2.data)
-        # self._write(self.msg)
-        # self._write(self.msg2)
-        self.cmd_vel_pub.publish(self.msg)
-        self.cmd_vel_pub.publish(self.msg2)
-
-    #PID tuning
-    def trackbars(self):
-        windowName = "Params"
-        image = cv2.imread(os.path.dirname(os.path.realpath(__file__))+'/map.png')
-        cv2.namedWindow(windowName,cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(windowName,480,360)
-        cv2.createTrackbar('Save',windowName,0,1,self.save_object)
-        cv2.createTrackbar('View',windowName,0,1,self.view)
-        cv2.createTrackbar('p',windowName,int(self.p*100000),600,self.changep)
-        cv2.createTrackbar('d',windowName,int(self.d*100000),50,self.changed)
-        cv2.createTrackbar('i',windowName,int(self.i*100000),100,self.changei)
-        cv2.imshow(windowName, image)
-        key = cv2.waitKey(0)
-    def save_object(self,v):
-        file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'w')
-        data = {"p":self.p,"d":self.d,"i":self.i,"kp":self.kp,"kd":self.kd,"ki":self.ki,"kp2":self.kp2,"kd2":self.kd2,"ki2":self.ki2}
-        json.dump(data, file)
-        self.view(0)
-    def view(self,v):
-        print("=========== PIDS ============"+'\n'+
-            "p           "+str(self.p)+
-            "\nd         "+str(self.d)+
-            "\ni         "+str(self.i)+
-            "\nkp         "+str(self.kp)+
-            "\nkd         "+str(self.kd)+
-            "\nki         "+str(self.ki)+
-            "\nkp2        "+str(self.kp2)+
-            "\nkd2        "+str(self.kd2)+
-            "\nki2        "+str(self.ki2)        
-        )
-    def changep(self,v):
-        self.p = v/100000
-    def changed(self,v):
-        self.d = v/100000
-    def changei(self,v):
-        self.i = v/100000
-    def changekp(self,v):
-        self.kp = v/1000
-    def changekd(self,v):
-        self.kd = v/1000
-    def changeki(self,v):
-        self.ki = v/1000
-    def changekp2(self,v):
-        self.kp2 = v/1000
-    def changekd2(self,v):
-        self.kd2 = v/1000
-    def changeki2(self,v):
-        self.ki2 = v/1000
+        self._write(self.msg)
+        self._write(self.msg2)
+        # self.cmd_vel_pub.publish(self.msg)
+        # self.cmd_vel_pub.publish(self.msg2)
 
 if __name__ == '__main__':
     print("starting")

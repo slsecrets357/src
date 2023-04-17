@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
     cv_image = cv::Mat::zeros(480, 640, CV_8UC3);
     image = cv::Mat::zeros(480, 640, CV_8UC3);
 
-    double lane_pub_rate = 30.0; // Adjust this value for lane_pub rate
+    double lane_pub_rate = 25.0; // Adjust this value for lane_pub rate
     double sign_pub_rate = 1.0;
     // ros::Timer lane_timer = nh.createTimer(ros::Duration(1.0 / lane_pub_rate), [&](const ros::TimerEvent& event) { laneDetectionCallback(event, &lane_pub); });
     // ros::Timer sign_timer = nh.createTimer(ros::Duration(1.0 / sign_pub_rate), [&](const ros::TimerEvent& event) { signDetectionCallback(event, &api, &sign_pub); });
