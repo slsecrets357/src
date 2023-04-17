@@ -17,7 +17,7 @@ from trackmap import track_map
 
 class StateMachine():
     #initialization
-    def __init__(self, simulation = True, planned_path = "/paths/path.json", custom_path = False):
+    def __init__(self, simulation = False, planned_path = "/paths/path.json", custom_path = False):
         rospy.init_node('control_node', anonymous=True)
         self.timer4 = rospy.Time.now()
         self.timer5 = rospy.Time.now()

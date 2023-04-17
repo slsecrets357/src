@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="control" type="cameraNode2" 				name="camaeraNODE"  			output="screen"/>
+    <node pkg="input" type="sensors.py" 				name="sensorNODE"  				output="screen"/>
+</launch>
