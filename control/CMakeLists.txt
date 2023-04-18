@@ -247,10 +247,11 @@ target_link_libraries(signFastest
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  scripts/lane.py
+  # scripts/lane.py
   # scripts/sign.py
-  scripts/control2.py
+  # scripts/control2.py
   # scripts/localization.py
+  scripts/control3.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

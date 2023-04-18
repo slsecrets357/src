@@ -42,7 +42,7 @@ class serialNODE():
     def __init__(self):
         """It forwards the control messages received from socket to the serial handling node. 
         """
-        devFile = '/dev/ttyACM0'
+        devFile = '/dev/ttyACM2'
         logFile = 'historyFile.txt'
         
         # comm init       
@@ -146,14 +146,13 @@ class serialNODE():
         """
         command = json.loads(msg.data)
         # print("hh", type(command), type(msg), type(msg.data))
-        print(msg)
+        # print(msg)
         print(command)
         # Unpacking the dictionary into action and values
         command_msg = self.messageConverter.get_command(**command)
-        
+        # print(command_msg)
         self.serialCom.write(command_msg.encode('ascii'))
         self.historyFile.write(command_msg)
-            
             
 if __name__ == "__main__":
     serNod = serialNODE()

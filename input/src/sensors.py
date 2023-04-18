@@ -105,57 +105,62 @@ class CombinedNODE():
             from mpu6050 import mpu6050
 
         # Encoder setup
-        self.ser = serial.Serial(
-            port='/dev/ttyACM0',
-            baudrate = 19200,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_ONE,
-            bytesize=serial.EIGHTBITS,
-            timeout=1
-        )
+        # self.ser = serial.Serial(
+        #     port='/dev/ttyACM2',
+        #     baudrate = 19200,
+        #     parity=serial.PARITY_NONE,
+        #     stopbits=serial.STOPBITS_ONE,
+        #     bytesize=serial.EIGHTBITS,
+        #     timeout=1
+        # )
 
         rospy.init_node('combinedNODE', anonymous=False)
         
         self.combined_publisher = rospy.Publisher("/automobile/sensors", Sensors, queue_size=3)
 
-        # serialNODE
-        """It forwards the control messages received from socket to the serial handling node. 
-        """
-        devFile = '/dev/ttyACM0'
-        logFile = 'historyFile.txt'
+    #     # serialNODE
+    #     """It forwards the control messages received from socket to the serial handling node. 
+    #     """
+    #     devFile = '/dev/ttyACM2'
+    #     # logFile = 'historyFile.txt'
         
-        # comm init       
-        self.serialCom = serial.Serial(devFile,19200,timeout=0.1)
-        self.serialCom.flushInput()
-        self.serialCom.flushOutput()
+    #     # comm init       
+    #     self.serialCom = serial.Serial(devFile,19200,timeout=0.1)
+    #     self.serialCom.flushInput()
+    #     self.serialCom.flushOutput()
 
-        # log file init
-        # self.historyFile = FileHandler(logFile)
+    #     # log file init
+    #     # self.historyFile = FileHandler(logFile)
         
-        # message converted init
-        self.messageConverter = MessageConverter()
-        # self.buff=""
-        # self.isResponse=False
-        self.msg = String()
-        self.msg.data = '{"action":"5","activate": true}'
-        for bhf in range(15):
-            # msg.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
-            self._write(self.msg)
-            time.sleep(0.1)
-        # self.serialCom.open()
+    #     # message converted init
+    #     self.messageConverter = MessageConverter()
+    #     # self.buff=""
+    #     # self.isResponse=False
+    #     self.msg = String()
+    #     self.msg.data = '{"action":"5","activate": true}'
+    #     for bhf in range(15):
+    #         # msg.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
+    #         self._write(self.msg)
+    #         time.sleep(0.1)
+    #     self.msg.data = '{"action":"4","activate": true}'
+    #     for bhf in range(15):
+    #         # msg.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
+    #         self._write(self.msg)
+    #         time.sleep(0.1)
+    #     # self.serialCom.open()
 
     
-    def _write(self, msg):
-        """ Represents the writing activity on the the serial.
-        """
-        command = json.loads(msg.data)
-        # print("hh", type(command), type(msg), type(msg.data))
-        # print(msg)
-        # print(command)
-        # Unpacking the dictionary into action and values
-        command_msg = self.messageConverter.get_command(**command)
-        self.serialCom.write(command_msg.encode('ascii'))
-        # self.historyFile.write(command_msg)
+    # def _write(self, msg):
+    #     """ Represents the writing activity on the the serial.
+    #     """
+    #     command = json.loads(msg.data)
+    #     # print("hh", type(command), type(msg), type(msg.data))
+    #     # print(msg)
+    #     # print(command)
+    #     # Unpacking the dictionary into action and values
+    #     command_msg = self.messageConverter.get_command(**command)
+    #     self.serialCom.write(command_msg.encode('ascii'))
+    #     # self.historyFile.write(command_msg)
 
     def run(self):
         rospy.loginfo("starting combinedNODE")
@@ -183,14 +188,15 @@ class CombinedNODE():
             combined_data = Sensors()
             if self.imu.IMURead():
                 combined_data.yaw = math.degrees(self.imu.getIMUData()["fusionPose"][2])
-            try:
-                speed = self.ser.readline() #make sure this is a float32
-                s = speed.decode("utf-8")
-                colon_index = s.find(':')
-                subs = float(s[colon_index+1:s.find(';', colon_index)])
-                combined_data.speed  = subs
-            except:
-                pass
+            # try:
+            #     speed = self.ser.readline() #make sure this is a float32
+            #     s = speed.decode("utf-8")
+            #     colon_index = s.find(':')
+            #     subs = float(s[colon_index+1:s.find(';', colon_index)])
+            #     combined_data.speed = subs
+            # except:
+            #     pass
+            combined_data.speed = 0
 
             self.combined_publisher.publish(combined_data)
             
