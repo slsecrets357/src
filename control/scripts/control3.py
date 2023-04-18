@@ -525,7 +525,6 @@ class StateMachine():
                 self.idle()
                 self.idle()
                 rospy.signal_shutdown("Exit")
-            print("decisionI is ", self.decisionsI)
             self.intersectionDecision = self.decisions[self.decisionsI] #replace this with service call
             self.decisionsI+=1
             if self.intersectionDecision == 8:
@@ -570,7 +569,7 @@ class StateMachine():
             # print("yaw, curAngle, error: ", self.yaw, self.currentAngle, error)
             if abs(error) <= 0.05:
                 self.intersectionState+=1 #done adjusting
-                print("done adjusting angle. Transitioning to trajectory following")
+                # print("done adjusting angle. Transitioning to trajectory following")
                 self.error_sum = 0 #reset pid errors
                 self.last_error = 0
                 return 0
@@ -587,7 +586,7 @@ class StateMachine():
             # print("yaw_error: ")
             # print(str(self.yaw-self.destinationAngle))
             if arrived:
-                print("trajectory done.")
+                # print("trajectory done.")
                 self.doneManeuvering = True
                 self.last_error2 = 0 #reset pid errors
                 self.error_sum2 = 0
@@ -727,7 +726,6 @@ class StateMachine():
                 if abs(error) <= 0.05:
                     self.intersectionState += 1
                     # print("done adjusting angle!!")
-                    self.timer5 = rospy.Time.now()+rospy.Duration(3) #change to odom
                 self.publish_cmd_vel(-23, self.maxspeed*0.9)
                 return 0
             elif self.intersectionState==1: #adjusting
@@ -934,16 +932,16 @@ class StateMachine():
                 if abs(error) >= self.parallelParkAngle*np.pi/180:
                     self.intersectionState = 3 # skip adjusting 2
                     print(f"{self.parallelParkAngle} degrees...")
-                    self.timer5 = rospy.Time.now()+rospy.Duration(3) #change to odom
+                    # self.timer5 = rospy.Time.now()+rospy.Duration(3) #change to odom
                 self.publish_cmd_vel(23, -self.maxspeed*0.9)
                 return 0
-            elif self.intersectionState==2: #adjusting
-                if rospy.Time.now() >= self.timer5:
-                    self.intersectionState = 3
-                    self.timer5 = None
-                    # print("done going back. begin adjusting angle round2...")
-                self.publish_cmd_vel(0, -self.maxspeed*0.9)
-                return 0
+            # elif self.intersectionState==2: #adjusting
+            #     if rospy.Time.now() >= self.timer5:
+            #         self.intersectionState = 3
+            #         self.timer5 = None
+            #         # print("done going back. begin adjusting angle round2...")
+            #     self.publish_cmd_vel(0, -self.maxspeed*0.9)
+            #     return 0
             elif self.intersectionState==3: #adjusting
                 error = self.yaw - self.destinationAngle
                 if self.yaw>=5.73: #subtract 2pi to get small error
@@ -1166,7 +1164,6 @@ class StateMachine():
                 if abs(error) >= self.parallelParkAngle*np.pi/180:
                     self.intersectionState = 2
                     # print(f"{self.parallelParkAngle} degrees...")
-                    self.timer5 = rospy.Time.now()+rospy.Duration(3) #change to odom
                 self.publish_cmd_vel(-23, self.maxspeed*0.9)
                 return 0
             elif self.intersectionState==2: #adjusting
@@ -1288,7 +1285,7 @@ class StateMachine():
         return output
     def pid2(self, error):
         # self.error_sum2 += error * self.dt
-        dt = (rospy.Time.now()-self.timer5).to_sec()
+        dt = (rospy.Time.now()-self.timer4).to_sec()
         # rospy.loginfo("time: %.4f", self.dt)
         self.timer4 = rospy.Time.now()
         derivative = (error - self.last_error2) / dt
@@ -1380,7 +1377,9 @@ class StateMachine():
         :return: Steering angle in radians
         """
         # Calculate the steering angle in radians
-        image_center = 640 / 2 
+        self.dt = (rospy.Time.now()-self.timer4).to_sec()
+        self.timer4 = rospy.Time.now()
+        image_center = 640 / 2
         error = (self.center - image_center)
         d_error = (error-self.last)/self.dt
         self.last = error
