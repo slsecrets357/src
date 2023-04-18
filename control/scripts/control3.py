@@ -6,7 +6,6 @@ from utils.msg import Lane, Sign, localisation, IMU, Sensors, encoder
 import time
 import math
 
-import cv2
 import os
 import json
 import argparse
@@ -20,27 +19,24 @@ class StateMachine():
     def __init__(self, simulation = False, planned_path = "/paths/path.json", custom_path = False):
         # serialNODE
         from messageconverter import MessageConverter
-        from filehandler      import FileHandler
         import serial
         devFile = '/dev/ttyACM2'
-        logFile = 'historyFile.txt'
         
-        # comm init       
+        # comm init
         self.serialCom = serial.Serial(devFile,19200,timeout=1)
         self.serialCom.flushInput()
         self.serialCom.flushOutput()
         
         # message converted init
-        self.messageConverter = MessageConverter()  
-        self.historyFile = FileHandler(logFile)
+        self.messageConverter = MessageConverter()
         
         rospy.init_node('control_node', anonymous=True)
         self.timer4 = rospy.Time.now()
         self.timer5 = rospy.Time.now()
         self.odomTimer = rospy.Time.now()
         self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
-        self.rate = rospy.Rate(10)
-        self.dt = 1/50 #for PID
+        self.rate = rospy.Rate(25)
+        self.dt = 1/25 #for PID
         
         #simulation
         self.simulation = simulation
@@ -266,18 +262,6 @@ class StateMachine():
         self.serialCom.write(command_msg.encode('ascii'))
         # buffer_size = self.serialCom.out_waiting
         # print("Buffer size:", buffer_size)
-        # self.historyFile.write(command_msg)
-
-    # def _read(self):
-    #     try:
-    #         speed = self.serialCom.readline() #make sure this is a float32
-    #         s = speed.decode("utf-8")
-    #         colon_index = s.find(':')
-    #         subs = float(s[colon_index+1:s.find(';', colon_index)])
-    #         self.velocity = subs
-    #         return True
-    #     except:
-    #         return False
 
     def process_yaw_sim(self, yaw):
         self.yaw = yaw if yaw>0 else (6.2831853+yaw)
@@ -1312,9 +1296,6 @@ class StateMachine():
     def odometry(self):
         dt = (rospy.Time.now()-self.odomTimer).to_sec()
         self.odomTimer = rospy.Time.now()
-        # read = false
-        # while (not read):
-        #     read = self._read()
         magnitude = self.velocity*dt*self.odomRatio
         self.odomX += magnitude * math.cos(self.yaw)
         self.odomY += magnitude * math.sin(self.yaw)
@@ -1427,7 +1408,6 @@ class StateMachine():
         # self.cmd_vel_pub.publish(self.msg2)
 
 if __name__ == '__main__':
-    print("starting")
     parser = argparse.ArgumentParser(description='State Machine for Robot Control.')
     parser.add_argument("--simulation", type=str, default=True, help="Run the robot in simulation or real life")
     parser.add_argument("--path", type=str, default="/paths/path.json", help="Planned path")
