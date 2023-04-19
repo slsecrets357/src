@@ -23,8 +23,6 @@ class StateMachine():
         self.odomTimer = rospy.Time.now()
         self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
         
-        #IMPORTANT**********
-        #Check for this
         self.rate = rospy.Rate(25)
         self.dt = 1/25 #for PID
 
