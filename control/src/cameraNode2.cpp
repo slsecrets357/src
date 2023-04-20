@@ -246,9 +246,12 @@ int main(int argc, char** argv) {
     filePathBin.replace(pos, std::string::npos, "model/amy357s-opt.bin");
     const char* bin = filePathBin.c_str();
     api.loadModel(param,bin);
+
     ros::NodeHandle nh;
     ros::Publisher lane_pub = nh.advertise<utils::Lane>("lane", 3);
     ros::Publisher sign_pub = nh.advertise<utils::Sign>("sign", 3);
+    image_transport::ImageTransport it(nh); // Create an ImageTransport instance
+    image_transport::Publisher image_pub = it.advertise("automobile/image_raw", 1); // Create an image publisher
     
     cv_image = cv::Mat::zeros(480, 640, CV_8UC3);
     image = cv::Mat::zeros(480, 640, CV_8UC3);
@@ -261,7 +264,8 @@ int main(int argc, char** argv) {
     std::thread sign_thread(signDetection, &api, &sign_pub, sign_pub_rate);
 
     raspicam::RaspiCam_Cv camera_;
-
+    camera_.set(CV_CAP_PROP_FRAME_WIDTH, 640);
+    camera_.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
     if (!camera_.open()) {
         ROS_ERROR("Failed to open the camera.");
         return 1;
