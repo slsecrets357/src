@@ -212,6 +212,7 @@ add_executable(signFastest
 ## Specify libraries to link a library or executable target against
 target_link_libraries(camera
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
   raspicam
 )
 target_link_libraries(cameraNode

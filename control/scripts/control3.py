@@ -47,7 +47,7 @@ class StateMachine():
             # serialNODE
             from messageconverter import MessageConverter
             import serial
-            devFile = '/dev/ttyACM2'
+            devFile = '/dev/ttyACM0'
             
             # comm init
             self.serialCom = serial.Serial(devFile,19200,timeout=1)
@@ -353,7 +353,7 @@ class StateMachine():
                 elif self.toggle == 2:
                     self.toggle = 0
                     self.msg.data = '{"action":"5","activate": true}'
-                self.cmd_vel_pub.publish(self.msg)
+                self._write(self.msg)
                 return 0
         elif self.state == 11: #parked
             if self.decisionsI >= len(self.decisions):

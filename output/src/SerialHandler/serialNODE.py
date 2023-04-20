@@ -42,7 +42,7 @@ class serialNODE():
     def __init__(self):
         """It forwards the control messages received from socket to the serial handling node. 
         """
-        devFile = '/dev/ttyACM2'
+        devFile = '/dev/ttyACM0'
         logFile = 'historyFile.txt'
         
         # comm init       

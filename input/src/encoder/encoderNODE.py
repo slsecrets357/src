@@ -19,7 +19,7 @@ class encoderNODE():
         rospy.init_node('encoderNODE', anonymous=False)
 
         self.ser = serial.Serial(
-            port='/dev/ttyACM2',
+            port='/dev/ttyACM0',
             baudrate = 19200,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
