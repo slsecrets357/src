@@ -278,6 +278,9 @@ int main(int argc, char** argv) {
         camera_.grab();
         mtx.lock();
         camera_.retrieve(cv_image);
+        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_image).toImageMsg();
+        msg->header.stamp = ros::Time::now();
+        pub.publish(msg);
         mtx.unlock();
         ros::spinOnce();
     }
