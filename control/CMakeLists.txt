@@ -180,6 +180,10 @@ add_executable(cameraNode2
   src/include/raspicam/raspicam_cv.cpp
   src/yolo-fastestv2.cpp
 )
+add_executable(cameraNode3
+  src/cameraNode3.cpp
+  src/yolo-fastestv2.cpp
+)
 add_executable(cameraExample
   src/cameraExample.cpp
   src/yolo-fastestv2.cpp
@@ -224,6 +228,10 @@ target_link_libraries(cameraNode2
   ${catkin_LIBRARIES}
   ncnn ${OpenCV_LIBS}
   raspicam
+)
+target_link_libraries(cameraNode3
+  ${catkin_LIBRARIES}
+  ncnn ${OpenCV_LIBS}
 )
 target_link_libraries(cameraExample
   ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}

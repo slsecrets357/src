@@ -124,6 +124,7 @@ class cameraNODE():
             # read and reshape from bytes to np.array
             data  = np.frombuffer(data, dtype=np.uint8)
             data  = np.reshape(data, (480, 640, 3))
+            # print(data.shape)
             stamp = time.time()
             #cv2.imshow("Frame", data)
             #key = cv2.waitKey(1) & 0xFF

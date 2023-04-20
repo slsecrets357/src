@@ -74,7 +74,7 @@ class StateMachine():
             self.left_exit_trajectory = self.left_exit_trajectory_real
             self.parallelParkAngle = 35
             self.initializationTime = 10
-            self.maxspeed = 0.125
+            self.maxspeed = 0.15
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
             #8:enterhwLeft, 9:enterhwStright, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
@@ -97,7 +97,7 @@ class StateMachine():
         self.class_names = ['oneway', 'highwayexit', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayentrance', 'priority',
                 'lights','block','pedestrian','car','others','nothing']
         self.min_sizes = [25,25,30,000,40,42,25,25,25,130,100,72,130]
-        self.max_sizes = [50,75,70,000,75,80,50,75,50,200,150,200,300]
+        self.max_sizes = [50,75,70,000,75,200,50,75,50,200,150,200,300]
         self.center = -1
         self.detected_objects = []
         self.numObj = -1
@@ -206,7 +206,7 @@ class StateMachine():
             msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
             # msg.data = '{"action":"1","speed":'+str(0.0)+'}'
             # msg2.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
-            for haha in range(3):
+            for haha in range(10):
                 self._write(msg)
                 # pub.publish(msg)
                 self.rate.sleep()
@@ -1242,8 +1242,8 @@ class StateMachine():
     def parking_detected(self):
         return self.object_detected(4)
     def is_green(self):
-        if not self.simulation: #if not simulation consider red
-            return False
+        if not self.simulation: #if not simulation consider green
+            return True
         else:
             self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
             if self.orientation==1 or self.orientation==3: #N or S

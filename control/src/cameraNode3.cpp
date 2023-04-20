@@ -4,7 +4,9 @@
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
 #include <chrono>
-#include <raspicam/raspicam_cv.h>
+// #include <raspicam/raspicam_cv.h>
+// #include "/home/pi/Documents/Brain_ROS/devel/include/utils/Lane.h"
+// #include "/home/pi/Documents/Brain_ROS/devel/include/utils/Sign.h"
 #include "/home/pi/Documents/Brain_ROS/devel/include/utils/Lane.h"
 #include "/home/pi/Documents/Brain_ROS/devel/include/utils/Sign.h"
 #include "include/yolo-fastestv2.h"
@@ -234,7 +236,13 @@ static void signDetection(yoloFastestv2 *api, ros::Publisher *pub, double rate) 
 //     pub->publish(sign_msg);
 // }
 
+static void imageCallback(const sensor_msgs::ImageConstPtr& msg){
+    cv_image = cv_bridge::toCvShare(msg, "bgr8")->image;
+    std::cout << "cv_image size: " << cv_image.size() << std::endl;
+}
+
 int main(int argc, char** argv) {
+    cv_image = cv::Mat::zeros(480, 640, CV_8UC3);
     ros::init(argc, argv, "object_detector");
     yoloFastestv2 api;
     std::string filePathParam = __FILE__;
@@ -246,14 +254,11 @@ int main(int argc, char** argv) {
     filePathBin.replace(pos, std::string::npos, "model/amy357s-opt.bin");
     const char* bin = filePathBin.c_str();
     api.loadModel(param,bin);
-
     ros::NodeHandle nh;
     ros::Publisher lane_pub = nh.advertise<utils::Lane>("lane", 3);
     ros::Publisher sign_pub = nh.advertise<utils::Sign>("sign", 3);
-    image_transport::ImageTransport it(nh); // Create an ImageTransport instance
-    image_transport::Publisher image_pub = it.advertise("automobile/image_raw", 1); // Create an image publisher
     
-    cv_image = cv::Mat::zeros(480, 640, CV_8UC3);
+    
     image = cv::Mat::zeros(480, 640, CV_8UC3);
 
     double lane_pub_rate = 25.0; // Adjust this value for lane_pub rate
@@ -263,36 +268,15 @@ int main(int argc, char** argv) {
     std::thread lane_thread(laneDetection, &lane_pub, lane_pub_rate);
     std::thread sign_thread(signDetection, &api, &sign_pub, sign_pub_rate);
 
-    raspicam::RaspiCam_Cv camera_;
-    // camera_.set(cv::CAP_PROP_FRAME_WIDTH, 640);
-    // camera_.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-    camera_.set(cv::CAP_PROP_FPS,50);
-    if (!camera_.open()) {
-        ROS_ERROR("Failed to open the camera.");
-        return 1;
-    }
-
-    // camera_.grab();
-    // mtx.lock();
-    // camera_.retrieve(cv_image);
-    // std::cout << "cv_image size: " << cv_image.size() << std::endl;
-    // mtx.unlock();
-    // cv::Mat image_raw=cv::Mat::zeros(960, 1280, CV_8UC3);
+    image_transport::ImageTransport it(nh);
+    image_transport::Subscriber image_sub = it.subscribe("/automobile/image_raw", 1, imageCallback);
+    
     stopline = false;
 
     while(ros::ok()) {
-        camera_.grab();
-        mtx.lock();
-        camera_.retrieve(cv_image);
-        // cv::resize(image_raw, cv_image, cv::Size(640, 480), 0, 0, cv::INTER_LINEAR);
-        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_image).toImageMsg();
-        msg->header.stamp = ros::Time::now();
-        image_pub.publish(msg);
-        mtx.unlock();
         ros::spinOnce();
     }
     lane_thread.join();
     sign_thread.join();
-    camera_.release();
     return 0;
 }
