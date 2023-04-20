@@ -166,6 +166,10 @@ find_package(OpenCV REQUIRED COMPONENTS
 # add_executable(control2
 #   src/control2.cpp
 # )
+add_executable(camera
+  src/camera.cpp
+  src/include/raspicam/raspicam_cv.cpp
+)
 add_executable(cameraNode
   src/cameraNode.cpp
   src/include/raspicam/raspicam_cv.cpp
@@ -206,6 +210,10 @@ add_executable(signFastest
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
+target_link_libraries(camera
+  ${catkin_LIBRARIES}
+  raspicam
+)
 target_link_libraries(cameraNode
   ${catkin_LIBRARIES}
   ncnn ${OpenCV_LIBS}
