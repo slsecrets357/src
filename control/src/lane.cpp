@@ -55,7 +55,7 @@ public:
         }
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
-        std::cout << "durations: " << duration.count() << std::endl;
+        // std::cout << "durations: " << duration.count() << std::endl;
     }
 
     std::vector<int> extract_lanes(cv::Mat hist_data) {

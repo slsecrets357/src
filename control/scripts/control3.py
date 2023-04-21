@@ -47,7 +47,7 @@ class StateMachine():
             # serialNODE
             from messageconverter import MessageConverter
             import serial
-            devFile = '/dev/ttyACM2'
+            devFile = '/dev/ttyACM0'
             
             # comm init
             self.serialCom = serial.Serial(devFile,19200,timeout=1)
@@ -73,12 +73,13 @@ class StateMachine():
             self.right_exit_trajectory = self.right_exit_trajectory_real
             self.left_exit_trajectory = self.left_exit_trajectory_real
             self.parallelParkAngle = 35
-            self.initializationTime = 10
-            self.maxspeed = 0.125
+            self.initializationTime = 3.57
+            self.maxspeed = 0.15
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
             #8:enterhwLeft, 9:enterhwStright, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
             self.decisions = [2,3,6,0,4]
+            # self.decisions = [0]
             # loc = rospy.wait_for_message("/automobile/localisation",localisation)
             # self.x = loc.posA
             # self.y = loc.posB
@@ -97,7 +98,7 @@ class StateMachine():
         self.class_names = ['oneway', 'highwayexit', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayentrance', 'priority',
                 'lights','block','pedestrian','car','others','nothing']
         self.min_sizes = [25,25,30,000,40,42,25,25,25,130,100,72,130]
-        self.max_sizes = [50,75,70,000,75,80,50,75,50,200,150,200,300]
+        self.max_sizes = [50,75,70,000,75,200,50,75,50,200,150,200,300]
         self.center = -1
         self.detected_objects = []
         self.numObj = -1
@@ -206,7 +207,7 @@ class StateMachine():
             msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
             # msg.data = '{"action":"1","speed":'+str(0.0)+'}'
             # msg2.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
-            for haha in range(3):
+            for haha in range(10):
                 self._write(msg)
                 # pub.publish(msg)
                 self.rate.sleep()
@@ -353,7 +354,7 @@ class StateMachine():
                 elif self.toggle == 2:
                     self.toggle = 0
                     self.msg.data = '{"action":"5","activate": true}'
-                self.cmd_vel_pub.publish(self.msg)
+                self._write(self.msg)
                 return 0
         elif self.state == 11: #parked
             if self.decisionsI >= len(self.decisions):
@@ -422,7 +423,7 @@ class StateMachine():
                     self.timer = None
                     return 0
             if self.timer is None:
-                self.timer = rospy.Time.now() + rospy.Duration(1.57)
+                self.timer = rospy.Time.now() + rospy.Duration(3.57)
                 print("prepare to overtake")
             elif rospy.Time.now() >= self.timer:
                 self.timer = None
@@ -707,6 +708,8 @@ class StateMachine():
         if True: #change with left right overtaking if needed
             if self.initialPoints is None:
                 self.overtaking_angle = self.yaw
+                if self.overtaking_angle < 0:
+                    self.overtaking_angle += 6.28
                 # print("current orientation: ", self.directions[self.orientation], self.orientations[self.orientation])
                 # print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
                 self.initialPoints = np.array([self.x, self.y])
@@ -717,8 +720,8 @@ class StateMachine():
                 self.odomTimer = rospy.Time.now()
                 self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
             if self.intersectionState==0: #adjusting
-                error = self.yaw - (self.overtaking_angle + np.pi/4)
-                if self.yaw>=5.73: #subtract 2pi to get small error
+                error = self.yaw - (self.overtaking_angle + np.pi/5)
+                if self.yaw>=5.73: #subtract 2pi to get error between -pi and pi
                     error-=6.28
                 # print("yaw, error: ", self.yaw, error)
                 if abs(error) <= 0.05:
@@ -730,7 +733,7 @@ class StateMachine():
                 error = self.yaw - self.overtaking_angle
                 if self.history == 6: #don't need to go back exactly at highway
                     error -= np.pi/8
-                if self.yaw>=5.73: #subtract 2pi to get small error
+                if self.yaw>=5.73: #subtract 2pi to get error between -pi and pi
                     error-=6.28
                 if abs(error) < 0.05:
                     if self.history == 6:#go back to highway immediatly
@@ -744,8 +747,8 @@ class StateMachine():
                 self.publish_cmd_vel(23, self.maxspeed*0.9)
                 return 0
             elif self.intersectionState==2: #adjusting
-                error = self.yaw - (self.overtaking_angle - np.pi/4)
-                if self.yaw>=5.73: #subtract 2pi to get small error
+                error = self.yaw - (self.overtaking_angle - np.pi/5)
+                if self.yaw>=5.73: #subtract 2pi to get error between -pi and pi
                     error-=6.28
                 # print("yaw, error: ", self.yaw, error)
                 if abs(error) <= 0.05:
@@ -755,7 +758,7 @@ class StateMachine():
                 return 0
             elif self.intersectionState==3: #adjusting
                 error = self.yaw - self.overtaking_angle
-                if self.yaw>=5.73: #subtract 2pi to get small error
+                if self.yaw>=5.73: #subtract 2pi to get error between -pi and pi
                     error-=6.28
                 # print("yaw, error: ", self.yaw, error)
                 if abs(error) <= 0.05:
@@ -1242,8 +1245,8 @@ class StateMachine():
     def parking_detected(self):
         return self.object_detected(4)
     def is_green(self):
-        if not self.simulation: #if not simulation consider red
-            return False
+        if not self.simulation: #if not simulation consider green
+            return True
         else:
             self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
             if self.orientation==1 or self.orientation==3: #N or S
@@ -1325,7 +1328,7 @@ class StateMachine():
     def left_trajectory_real(self, x):
         return math.exp(3.57*x-4.3)
     def right_trajectory_real(self, x):
-        return -math.exp(4*x-3.05)
+        return -math.exp(4*x-2.05)
     def left_exit_trajectory_real(self, x):
         return math.exp(4*x-3.05)
     def right_exit_trajectory_real(self, x):
