@@ -60,6 +60,7 @@ class StateMachine():
             
             # get initial yaw from IMU
             self.initialYaw = 0
+            #launch sensors at 0 to remove this
             while self.initialYaw==0:
                 imu = rospy.wait_for_message("/automobile/IMU",IMU)
                 self.initialYaw = imu.yaw
@@ -584,7 +585,7 @@ class StateMachine():
             desiredY = self.trajectory(x)
             error = y - desiredY
             # print("x, y_error: ",x,abs(error) )
-            arrived = abs(self.yaw-self.destinationAngle) <= 0.1
+            arrived = abs(self.yaw-self.destinationAngle) <= 0.15
             if self.intersectionDecision == 1:
                 arrived = arrived and abs(x)>=self.offsets_x[self.intersectionDecision]
             # print("yaw_error: ")
@@ -1286,7 +1287,11 @@ class StateMachine():
                 topic = 'start'
             else:
                 topic = 'master'
-            state=rospy.wait_for_message('/automobile/trafficlight/'+topic,Byte)#0=red,1=yellow,2=green
+            try:
+                state=rospy.wait_for_message('/automobile/trafficlight/'+topic,Byte,timeout=3)#0=red,1=yellow,2=green
+            except:
+                print("traffic light timed out")
+                return True
             return True if state.data == 2 else False
     def crosswalk_sign_detected(self):
         return self.object_detected(5)
