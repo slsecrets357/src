@@ -16,8 +16,7 @@ public:
         image = cv::Mat::zeros(480, 640, CV_8UC1);
         stopline = false;
         dotted = false;
-        pl = 320;
-        ros::Rate rate(15); 
+        ros::Rate rate(15);
         while (ros::ok()) {
             ros::spinOnce();
             rate.sleep();
@@ -25,11 +24,12 @@ public:
     }
 
     void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
-        auto start = high_resolution_clock::now();
         try {
             cv::Mat cv_image = cv_bridge::toCvShare(msg, "bgr8")->image;
+            // auto start = high_resolution_clock::now();
             double center = optimized_histogram(cv_image);
-            
+            // auto stop = high_resolution_clock::now();
+            // auto duration = duration_cast<microseconds>(stop - start);
             // total+=static_cast<double>(duration.count());
             // double avg_duration = total / num_iterations;
             // num_iterations++;
@@ -53,9 +53,6 @@ public:
         } catch (cv_bridge::Exception& e) {
             ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
         }
-        auto stop = high_resolution_clock::now();
-        auto duration = duration_cast<microseconds>(stop - start);
-        // std::cout << "durations: " << duration.count() << std::endl;
     }
 
     std::vector<int> extract_lanes(cv::Mat hist_data) {
@@ -144,7 +141,7 @@ public:
             }
             if (dotted) {
                 cv::putText(image, "DottedLine!", cv::Point(static_cast<int>(w*0.5), static_cast<int>(h * 0.5)), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 1, cv::LINE_AA);
-        }
+            }
             cv::line(image, cv::Point(static_cast<int>(center), image.rows), cv::Point(static_cast<int>(center), static_cast<int>(0.8 * image.rows)), cv::Scalar(0, 0, 255), 5);
             cv::Mat add;
             cv::cvtColor(padded_thresh, add, cv::COLOR_GRAY2BGR);
@@ -164,7 +161,6 @@ private:
     double total;
     cv::Mat maskh, masks, image, maskd;
     bool stopline, dotted;
-    int pl;
     int h = 480, w = 640;
     
     double minVal, maxVal;

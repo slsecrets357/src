@@ -250,8 +250,8 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh;
     ros::Publisher lane_pub = nh.advertise<utils::Lane>("lane", 3);
     ros::Publisher sign_pub = nh.advertise<utils::Sign>("sign", 3);
-    image_transport::ImageTransport it(nh); // Create an ImageTransport instance
-    image_transport::Publisher image_pub = it.advertise("automobile/image_raw", 1); // Create an image publisher
+    // image_transport::ImageTransport it(nh); // Create an ImageTransport instance
+    // image_transport::Publisher image_pub = it.advertise("automobile/image_raw", 1); // Create an image publisher
     
     cv_image = cv::Mat::zeros(480, 640, CV_8UC3);
     image = cv::Mat::zeros(480, 640, CV_8UC3);
@@ -285,9 +285,9 @@ int main(int argc, char** argv) {
         mtx.lock();
         camera_.retrieve(cv_image);
         // cv::resize(image_raw, cv_image, cv::Size(640, 480), 0, 0, cv::INTER_LINEAR);
-        sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_image).toImageMsg();
-        msg->header.stamp = ros::Time::now();
-        image_pub.publish(msg);
+        // sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", cv_image).toImageMsg();
+        // msg->header.stamp = ros::Time::now();
+        // image_pub.publish(msg);
         mtx.unlock();
         ros::spinOnce();
     }

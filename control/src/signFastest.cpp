@@ -67,7 +67,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr &msg, yoloFastestv2 *api, ro
     // for display
     // for (int i = 0; i < boxes.size(); i++) {
     //     // std::cout << "hi" << std::endl;
-    //     std::cout<<boxes[i].x1<<" "<<boxes[i].y1<<" "<<boxes[i].x2<<" "<<boxes[i].y2
+    //     std::cout<<boxes[i].x1<<" "<<boxes[i].y1<<" "<<boxes[i].x2-boxes[i].x1<<" "<<boxes[i].y2-boxes[i].y1
     //              <<" "<<boxes[i].score<<" "<<boxes[i].cate<<std::endl;
         
     //     char text[256];
@@ -114,7 +114,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "object_detector");
     ros::NodeHandle nh;
     image_transport::ImageTransport it(nh);
-    ros::Publisher pub = nh.advertise<utils::Sign>("sign", 1000);
+    ros::Publisher pub = nh.advertise<utils::Sign>("sign", 10);
     image_transport::Subscriber sub = it.subscribe("automobile/image_raw", 1, boost::bind(&imageCallback, _1, &api, &pub));
 
     // Spin ROS node
