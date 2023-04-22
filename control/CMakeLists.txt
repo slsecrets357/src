@@ -166,9 +166,13 @@ find_package(OpenCV REQUIRED COMPONENTS
 # add_executable(control2
 #   src/control2.cpp
 # )
+include_directories(/home/pi/Documents/Brain_ROS/src/control/src/include/raspicam/dependencies)
+include_directories(/home/pi/Documents/Brain_ROS/src/control/src/include/raspicam/dependencies/mmal)
+
 add_executable(camera
   src/camera.cpp
   src/include/raspicam/raspicam_cv.cpp
+  src/include/raspicam/private/private_impl.cpp
 )
 add_executable(cameraNode
   src/cameraNode.cpp
@@ -178,6 +182,7 @@ add_executable(cameraNode
 add_executable(cameraNode2
   src/cameraNode2.cpp
   src/include/raspicam/raspicam_cv.cpp
+  src/include/raspicam/private/private_impl.cpp
   src/yolo-fastestv2.cpp
 )
 add_executable(cameraNode3
@@ -218,6 +223,8 @@ target_link_libraries(camera
   ${catkin_LIBRARIES}
   ${OpenCV_LIBS}
   raspicam
+  /opt/vc/lib/libmmal_core.so
+  /opt/vc/lib/libmmal_util.so
 )
 target_link_libraries(cameraNode
   ${catkin_LIBRARIES}
@@ -228,6 +235,8 @@ target_link_libraries(cameraNode2
   ${catkin_LIBRARIES}
   ncnn ${OpenCV_LIBS}
   raspicam
+  /opt/vc/lib/libmmal_core.so
+  /opt/vc/lib/libmmal_util.so
 )
 target_link_libraries(cameraNode3
   ${catkin_LIBRARIES}

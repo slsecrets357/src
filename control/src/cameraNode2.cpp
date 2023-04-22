@@ -266,7 +266,7 @@ int main(int argc, char** argv) {
     raspicam::RaspiCam_Cv camera_;
     // camera_.set(cv::CAP_PROP_FRAME_WIDTH, 640);
     // camera_.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-    camera_.set(cv::CAP_PROP_FPS,50);
+    // camera_.set(cv::CAP_PROP_FPS,50);
     if (!camera_.open()) {
         ROS_ERROR("Failed to open the camera.");
         return 1;
@@ -274,8 +274,8 @@ int main(int argc, char** argv) {
 
     // camera_.grab();
     // mtx.lock();
-    // camera_.retrieve(cv_image);
-    // std::cout << "cv_image size: " << cv_image.size() << std::endl;
+    camera_.retrieve(cv_image);
+    std::cout << "cv_image size: " << cv_image.size() << std::endl;
     // mtx.unlock();
     // cv::Mat image_raw=cv::Mat::zeros(960, 1280, CV_8UC3);
     stopline = false;
