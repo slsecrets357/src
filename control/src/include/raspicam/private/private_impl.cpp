@@ -69,8 +69,8 @@ namespace raspicam {
             // Default everything to zero
             memset ( &State, 0, sizeof ( RASPIVID_STATE ) );
             State.framerate 		= 10;
-            State.width 			= 1280;      // use a multiple of 320 (640, 1280)
-            State.height 			= 960;		// use a multiple of 240 (480, 960)
+            State.width 			= 640;      // use a multiple of 320 (640, 1280)
+            State.height 			= 480;		// use a multiple of 240 (480, 960)
             State.sharpness = 0;
             State.contrast = 0;
             State.brightness = 50;

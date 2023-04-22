@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    camera_.set(cv::CAP_PROP_FPS,50);
+    // camera_.set(cv::CAP_PROP_FPS,50);
     // camera_.set(cv::CAP_PROP_FRAME_WIDTH, 640);
     // camera_.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
 
@@ -43,7 +43,8 @@ int main(int argc, char** argv) {
     // image_raw=cv::Mat::zeros(960, 1280, CV_8UC3);
     // camera_.grab();
     // camera_.retrieve(image_raw);
-    // std::cout << "cv_image size: " << cv_image.size() << std::endl;
+    camera_.retrieve(cv_image);
+    std::cout << "cv_image size: " << cv_image.size() << std::endl;
     // cv::resize(image_raw, cv_image, cv::Size(640, 480), 0, 0, cv::INTER_LINEAR);
     // std::cout << "cv_image size: " << cv_image.size() << std::endl;
 
