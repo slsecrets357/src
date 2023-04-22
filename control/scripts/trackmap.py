@@ -40,7 +40,6 @@ class track_map():
         # loading the graph map
 
         self.map_graph=nx.read_edgelist(os.path.dirname(os.path.realpath(__file__))+'/templates/map.edgelist',create_using=nx.DiGraph())
-
         for i in range(len(self.map_graph.nodes)):
             self.map_graph.nodes[self.locations[i]]['coord']=self.locations_coord[i]
         # self.map_graph=nx.read_graphml(os.path.dirname(os.path.realpath(__file__))+'/Competition_track.graphml')
@@ -215,6 +214,8 @@ class track_map():
 
     def locate(self,x,y,rot):
         # get current location based on position and orientation
+        if rot > np.pi:
+            rot -= 2*np.pi
         if y>6.2:
             if x<1.3:
                 if y<10.75:
@@ -454,8 +455,8 @@ class track_map():
         self.add_edge('int2N','int5N',1)
         self.add_edge('int2N','int3W',0)
         self.add_edge('int2N','int4E',2)
-        self.add_edge('int2S','int1W',0)
-        self.add_edge('int2S','int2E',2)
+        self.add_edge('int2S','int1W',2)
+        self.add_edge('int2S','int2E',0)
         self.add_edge('int2W','int1W',1)
         self.add_edge('int2W','int2N',2)
         self.add_edge('int2E','int4N',0)
