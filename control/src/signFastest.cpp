@@ -12,7 +12,7 @@ static const char* class_names[] = {
         "oneway", "highwayentrance", "stopsign", "roundabout", "park", "crosswalk", "noentry", "highwayexit", "priority",
                 "lights","block","pedestrian","car"
     };
-void imageCallback(const sensor_msgs::ImageConstPtr &msg, yoloFastestv2 *api, ros::Publisher *pub) {
+void imageCallback(const sensor_msgs::ImageConstPtr &msg, yoloFastestv2 *api, ros::Publisher *pub, bool show, bool print) {
     auto start = high_resolution_clock::now();
 
     // Convert ROS image to OpenCV image
@@ -65,40 +65,75 @@ void imageCallback(const sensor_msgs::ImageConstPtr &msg, yoloFastestv2 *api, ro
     // std::cout << "sign durations: " << duration.count() << std::endl;
     
     // for display
-    // for (int i = 0; i < boxes.size(); i++) {
-    //     // std::cout << "hi" << std::endl;
-    //     std::cout<<boxes[i].x1<<" "<<boxes[i].y1<<" "<<boxes[i].x2-boxes[i].x1<<" "<<boxes[i].y2-boxes[i].y1
-    //              <<" "<<boxes[i].score<<" "<<boxes[i].cate<<std::endl;
-        
-    //     char text[256];
-    //     sprintf(text, "%s %.1f%%", class_names[boxes[i].cate], boxes[i].score * 100);
+    if (show) {
+        for (int i = 0; i < boxes.size(); i++) {
+            // std::cout << "hi" << std::endl;
+            // std::cout<<boxes[i].x1<<" "<<boxes[i].y1<<" "<<boxes[i].x2-boxes[i].x1<<" "<<boxes[i].y2-boxes[i].y1
+            //          <<" "<<boxes[i].score<<" "<<boxes[i].cate<<std::endl;
+            
+            char text[256];
+            sprintf(text, "%s %.1f%%", class_names[boxes[i].cate], boxes[i].score * 100);
 
-    //     int baseLine = 0;
-    //     cv::Size label_size = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
+            int baseLine = 0;
+            cv::Size label_size = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseLine);
 
-    //     int x = boxes[i].x1;
-    //     int y = boxes[i].y1 - label_size.height - baseLine;
-    //     if (y < 0)
-    //         y = 0;
-    //     if (x + label_size.width > cv_ptr->image.cols)
-    //         x = cv_ptr->image.cols - label_size.width;
+            int x = boxes[i].x1;
+            int y = boxes[i].y1 - label_size.height - baseLine;
+            if (y < 0)
+                y = 0;
+            if (x + label_size.width > cv_ptr->image.cols)
+                x = cv_ptr->image.cols - label_size.width;
 
-    //     cv::rectangle(cv_ptr->image, cv::Rect(cv::Point(x, y), cv::Size(label_size.width, label_size.height + baseLine)),
-    //                   cv::Scalar(255, 255, 255), -1);
+            cv::rectangle(cv_ptr->image, cv::Rect(cv::Point(x, y), cv::Size(label_size.width, label_size.height + baseLine)),
+                          cv::Scalar(255, 255, 255), -1);
 
-    //     cv::putText(cv_ptr->image, text, cv::Point(x, y + label_size.height),
-    //                 cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+            cv::putText(cv_ptr->image, text, cv::Point(x, y + label_size.height),
+                        cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
-    //     cv::rectangle (cv_ptr->image, cv::Point(boxes[i].x1, boxes[i].y1), 
-    //                    cv::Point(boxes[i].x2, boxes[i].y2), cv::Scalar(255, 255, 0), 2, 2, 0);
-    // }
-    // cv::imshow("image", cv_ptr->image);
-    // cv::waitKey(1);
+            cv::rectangle (cv_ptr->image, cv::Point(boxes[i].x1, boxes[i].y1), 
+                           cv::Point(boxes[i].x2, boxes[i].y2), cv::Scalar(255, 255, 0), 2, 2, 0);
+        }
+        cv::imshow("image", cv_ptr->image);
+        cv::waitKey(1);
+    }
+    if (print) {
+        for (int i = 0; i < boxes.size(); i++) {
+            std::cout<<boxes[i].x1<<" "<<boxes[i].y1<<" "<<boxes[i].x2-boxes[i].x1<<" "<<boxes[i].y2-boxes[i].y1
+                     <<" "<<boxes[i].score<<" "<<boxes[i].cate<<std::endl;
+        }
+    }
 }
 
 
 int main(int argc, char **argv) {
     // ... (same as before, including class_names and yoloFastestv2 instance)
+    int opt;
+    bool showFlag = false;
+    bool printFlag = false;
+    
+    // Loop through command line arguments
+    while ((opt = getopt(argc, argv, "hs:p:")) != -1) {
+        switch (opt) {
+            case 's':
+                if (std::strcmp(optarg, "True") == 0) {
+                    showFlag = true;
+                }
+                break;
+            case 'p':
+                if (std::strcmp(optarg, "True") == 0) {
+                    printFlag = true;
+                }
+                break;
+            case 'h':
+                std::cout << "-s to display image\n";
+                std::cout << "-p to print detection\n";
+                exit(0);
+            default:
+                std::cerr << "Invalid argument\n";
+                exit(1);
+        }
+    }
+
     double num_iterations = 1;
     double total;
     static const char* class_names[] = {
@@ -115,7 +150,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
     image_transport::ImageTransport it(nh);
     ros::Publisher pub = nh.advertise<utils::Sign>("sign", 10);
-    image_transport::Subscriber sub = it.subscribe("automobile/image_raw", 1, boost::bind(&imageCallback, _1, &api, &pub));
+    image_transport::Subscriber sub = it.subscribe("automobile/image_raw", 1, boost::bind(&imageCallback, _1, &api, &pub, showFlag, printFlag));
 
     // Spin ROS node
     ros::spin();

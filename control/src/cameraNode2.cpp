@@ -127,7 +127,7 @@ double optimized_histogram(cv::Mat image, bool show = false) {
     }
     return center;
 }
-static void laneDetection(ros::Publisher *pub, double rate) {
+static void laneDetection(ros::Publisher *pub, double rate, bool print) {
     std::chrono::milliseconds sleep_duration(static_cast<int>(1000/rate));
     while (ros::ok()) {
         auto start = std::chrono::steady_clock::now();
@@ -135,6 +135,9 @@ static void laneDetection(ros::Publisher *pub, double rate) {
         cv::Mat local_cv_image = cv_image.clone();
         mtx.unlock();
         double center = optimized_histogram(local_cv_image);
+        if (print) {
+            std::cout << "center: " << center << std::endl;
+        }
         utils::Lane lane_msg;
         lane_msg.center = center;
         lane_msg.stopline = stopline;
@@ -146,7 +149,7 @@ static void laneDetection(ros::Publisher *pub, double rate) {
     }
 }
 
-static void signDetection(yoloFastestv2 *api, ros::Publisher *pub, double rate) {
+static void signDetection(yoloFastestv2 *api, ros::Publisher *pub, double rate, bool print) {
     std::chrono::milliseconds sleep_duration(static_cast<int>(1000/rate));
     while (ros::ok()) {
         auto start = std::chrono::steady_clock::now();
@@ -160,6 +163,13 @@ static void signDetection(yoloFastestv2 *api, ros::Publisher *pub, double rate) 
         sign_msg.header.frame_id = "camera_frame"; 
 
         sign_msg.num = boxes.size();
+
+        if (print) {
+            for (int i = 0; i < boxes.size(); i++) {
+                std::cout<<boxes[i].x1<<" "<<boxes[i].y1<<" "<<boxes[i].x2-boxes[i].x1<<" "<<boxes[i].y2-boxes[i].y1
+                        <<" "<<boxes[i].score<<" "<<boxes[i].cate<<std::endl;
+            }
+        }
 
         int bb = 0;
         for (const auto &box : boxes) {
@@ -235,6 +245,33 @@ static void signDetection(yoloFastestv2 *api, ros::Publisher *pub, double rate) 
 // }
 
 int main(int argc, char** argv) {
+    int opt;
+    bool sFlag = false;
+    bool lFlag = false;
+    
+    // Loop through command line arguments
+    while ((opt = getopt(argc, argv, "hs:l:")) != -1) {
+        switch (opt) {
+            case 's':
+                if (std::strcmp(optarg, "True") == 0) {
+                    sFlag = true;
+                }
+                break;
+            case 'l':
+                if (std::strcmp(optarg, "True") == 0) {
+                    lFlag = true;
+                }
+                break;
+            case 'h':
+                std::cout << "-s to print sign detection\n";
+                std::cout << "-l to print lane detection\n";
+                exit(0);
+            default:
+                std::cerr << "Invalid argument\n";
+                exit(1);
+        }
+    }
+    
     ros::init(argc, argv, "object_detector");
     yoloFastestv2 api;
     std::string filePathParam = __FILE__;
@@ -260,8 +297,8 @@ int main(int argc, char** argv) {
     double sign_pub_rate = 1.0;
     // ros::Timer lane_timer = nh.createTimer(ros::Duration(1.0 / lane_pub_rate), [&](const ros::TimerEvent& event) { laneDetectionCallback(event, &lane_pub); });
     // ros::Timer sign_timer = nh.createTimer(ros::Duration(1.0 / sign_pub_rate), [&](const ros::TimerEvent& event) { signDetectionCallback(event, &api, &sign_pub); });
-    std::thread lane_thread(laneDetection, &lane_pub, lane_pub_rate);
-    std::thread sign_thread(signDetection, &api, &sign_pub, sign_pub_rate);
+    std::thread lane_thread(laneDetection, &lane_pub, lane_pub_rate, lFlag);
+    std::thread sign_thread(signDetection, &api, &sign_pub, sign_pub_rate, sFlag);
 
     raspicam::RaspiCam_Cv camera_;
     // camera_.set(cv::CAP_PROP_FRAME_WIDTH, 640);
