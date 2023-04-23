@@ -80,29 +80,6 @@ class track_map():
     def get_location_cood(self,loc):
         return self.map_graph.nodes[loc]['coord']
 
-    def custum_path(self):
-        print("---Click on map to input path---")
-        print("---Press any keys to continue---")
-        self.regions = cv2.imread(os.path.dirname(os.path.realpath(__file__))+'/templates/map_graphv2.drawio.png')
-        self.planned_path = []
-        windowName = 'path'
-        cv2.namedWindow(windowName,cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(windowName,700,700)
-        cv2.setMouseCallback(windowName,self.mouse_event_handler)
-        cv2.imshow(windowName,self.regions)
-        key = cv2.waitKey(0)
-        # self.plan_path()
-        cv2.destroyAllWindows()
-        # Save directed path to a JSON file
-        # with open('/home/antoinedeng/Documents/Simulator/src/control/scripts/directed_path2.json', 'w') as outfile:
-        #     json.dump(self.path, outfile)
-
-    def mouse_event_handler(self, event, x, y, flags, param):
-        if event == cv2.EVENT_LBUTTONDOWN:
-            # print(f"User clicked on ({x}, {y})")
-            print(self.locateM(x,y))
-            self.planned_path.append(self.locateM(x,y))
-
     def plan_path(self):
         # get the path and directions
         self.path = [self.location]
@@ -133,9 +110,15 @@ class track_map():
                 self.add_edge('parkingS','track1S',7)
                 self.add_edge('track2S','parkingS',4)
         self.directions = []
+        sc = []
         for i in range(len(self.path)-1):
             d=self.map_graph.get_edge_data(self.path[i],self.path[i+1]).get('dir')
-            self.directions.append(d)
+            if d != -1:
+                self.directions.append(d)
+            else:
+                sc.append(i)
+        for i in reversed(sc):
+            self.path.pop(i)
         print("planned path:")
         print(self.path)
         print("direction list:")
@@ -492,14 +475,14 @@ class track_map():
         self.add_edge('int6E','int6S',2)
         self.add_edge('int6E','track3N',0)
         self.add_edge('track1N','parkingN',3)
-        self.add_edge('track1N','track2N',1)
+        self.add_edge('track1N','track2N',-1)
         self.add_edge('track1S','int5E',0)
         self.add_edge('track1S','int3S',1)
         self.add_edge('parkingN','track2N',5)
         self.add_edge('parkingN','track1S',6)
         self.add_edge('parkingS','track1S',7)
         self.add_edge('track2S','parkingS',4)
-        self.add_edge('track2S','track1S',1)
+        self.add_edge('track2S','track1S',-1)
         self.add_edge('track2N','roundabout',10)
         self.add_edge('roundabout','track2S',11)
         self.add_edge('roundabout','highwayS',12)
@@ -526,6 +509,9 @@ if __name__ == '__main__':
     m = json.load(open(os.path.dirname(os.path.realpath(__file__))+'/paths/path.json', 'r'))
     # print(m)
     node = track_map(0,15,1.5,m)
-    node.draw_map()
+    # node.make_map()
+    # node.draw_map()
+    node.custum_path()
+    node.plan_path()
     # node.draw_map_edgelist()
     # node.draw_map_graphml()

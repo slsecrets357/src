@@ -78,22 +78,22 @@ class StateMachine():
             self.initializationTime = 3.57
             self.maxspeed = 0.15
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
+            
+            # self.plan_path(custom_path, planned_path)
+            
+            # i = 0
+            # while i < len(self.planned_path) - 1:
+            #     if self.planned_path[i] == "track1N" and self.planned_path[i+1] == "track2N":
+            #         self.planned_path.pop(i)
+            #     elif self.planned_path[i] == "track2S" and self.planned_path[i+1] == "track1S":
+            #         self.planned_path.pop(i)
+            #     else:
+            #         i += 1
+            
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
             #8:enterhwLeft, 9:enterhwStright, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
             self.decisions = [2,3,6,0,4]
             # self.decisions = [0]
-            # loc = rospy.wait_for_message("/automobile/localisation",localisation)
-            # self.x = loc.posA
-            # self.y = loc.posB
-            # print("x,y,yaw",self.x,self.y,self.yaw)
-            # self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
-            # self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
-            # self.track_map.plan_path()
-            # if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
-            #     self.hw = True
-            #     self.history = 6
-            # elif self.track_map.location == "curvedpath":
-            #     self.cp = True
             self.decisionsI = 0
         #states
         self.states = ['Lane Following', "Approaching Intersection", "Stopping at Intersection", 
@@ -243,31 +243,80 @@ class StateMachine():
         self.adjustYawError = 0.1
 
         if self.simulation:
-            imu = rospy.wait_for_message("/automobile/IMU",IMU)
-            self.yaw = imu.yaw
-            loc = rospy.wait_for_message("/automobile/localisation",localisation)
+            self.plan_path(custom_path, planned_path)
+
+            i = 0
+            while i < len(self.planned_path) - 1:
+                if self.planned_path[i] == "track1N" and self.planned_path[i+1] == "track2N":
+                    self.planned_path.pop(i)
+                elif self.planned_path[i] == "track2S" and self.planned_path[i+1] == "track1S":
+                    self.planned_path.pop(i)
+                else:
+                    i += 1
+
+    def plan_path(self, custom_path, planned_path):
+        imu = rospy.wait_for_message("/automobile/IMU",IMU)
+        self.yaw = imu.yaw
+        try:
+            loc = rospy.wait_for_message("/automobile/localisation",localisation,timeout=3)
             self.x = loc.posA
             self.y = loc.posB
-            print("x,y,yaw",self.x,self.y,self.yaw)
-
-            # self.planned_path=['parkingN','roundabout','int5N','int1E','roundabout','parkingN']
-            if not custom_path:
-                self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
-                self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
-                self.track_map.plan_path()
-            else:
-                self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
-                self.track_map.plan_path()
-            if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
-                self.hw = True
-                self.history = 6
-            elif self.track_map.location == "curvedpath":
-                self.cp = True
-            # self.track_map.draw_map()
-            #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
-            #8:enterHWLeft, 9:enterHWStraight, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
-            self.decisions = self.track_map.directions
-            self.decisionsI = 0
+        except:
+            print("localisation timed out")
+            self.idle()
+            self.idle()
+            self.idle()
+            rospy.signal_shutdown("Exit")
+        print("x,y,yaw",self.x,self.y,self.yaw)
+        if not custom_path:
+            self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
+            self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
+            self.track_map.plan_path()
+        else:
+            self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
+            self.track_map.plan_path()
+            self.planned_path = self.track_map.path
+        if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
+            self.hw = True
+            self.history = 6
+        elif self.track_map.location == "curvedpath":
+            self.cp = True
+        # self.track_map.draw_map()
+        #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
+        #8:enterHWLeft, 9:enterHWStraight, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
+        self.decisions = self.track_map.directions
+        self.decisionsI = 0
+    
+    def plan_new_path(self):
+        imu = rospy.wait_for_message("/automobile/IMU",IMU)
+        self.yaw = imu.yaw
+        try:
+            loc = rospy.wait_for_message("/automobile/localisation",localisation,timeout=3)
+            self.x = loc.posA
+            self.y = loc.posB
+        except:
+            print("localisation timed out")
+            self.idle()
+            self.idle()
+            self.idle()
+            rospy.signal_shutdown("Exit")
+        print("x,y,yaw",self.x,self.y,self.yaw)
+        self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
+        print(self.planned_path)
+        del self.planned_path[:self.decisionsI-1]
+        print("new",self.planned_path)
+        self.track_map.planned_path = self.planned_path
+        self.track_map.plan_path()
+        if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
+            self.hw = True
+            self.history = 6
+        elif self.track_map.location == "curvedpath":
+            self.cp = True
+        # self.track_map.draw_map()
+        #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
+        #8:enterHWLeft, 9:enterHWStraight, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
+        self.decisions = self.track_map.directions
+        self.decisionsI = 0
 
     def _write(self, msg):
         """ Represents the writing activity on the the serial.
@@ -570,7 +619,8 @@ class StateMachine():
                 if self.cp:
                     self.cp = False
             else:
-                raise ValueError("self.intersectionDecision id wrong: ",self.intersectionDecision)
+                self.plan_new_path()
+                print("self.intersectionDecision id wrong: ",self.intersectionDecision)
             print("intersection decision: going " + self.decisionList[self.intersectionDecision])
         if self.initialPoints is None:
             self.set_current_angle()
@@ -833,7 +883,8 @@ class StateMachine():
             elif self.rdbDecision == 13: #W
                 self.rdbExitYaw = 5*np.pi/4 #change this depending on implementation
             else:
-                raise ValueError("self.rdbDecision id wrong: ",self.rdbDecision)
+                self.plan_new_path()
+                print("self.rdbDecision id wrong: ",self.rdbDecision)
             print("roundabout decision: going " + self.decisionList[self.rdbDecision])
             self.trajectory = self.rdb_trajectory
         if self.initialPoints is None:
@@ -932,7 +983,8 @@ class StateMachine():
             elif self.parkingDecision == 4: #parallel parking
                 pass
             else:
-                raise ValueError("self.parkingDecision id wrong: ",self.parkingDecision)
+                self.plan_new_path()
+                print("self.parkingDecision id wrong: ",self.parkingDecision)
             print("parking decision: going " + self.decisionList[self.parkingDecision])
         if self.parkingDecision == 4:
             if self.initialPoints is None:
@@ -1110,7 +1162,8 @@ class StateMachine():
             elif self.exitDecision == 7: #parallel exit
                 pass
             else:
-                raise ValueError("self.exitDecision id wrong: ",self.exitDecision)
+                self.plan_new_path()
+                print("self.exitDecision id wrong: ",self.exitDecision)
             print("exit decision: going " + self.decisionList[self.exitDecision])
         if self.exitDecision != 7:
             if self.initialPoints is None:
@@ -1255,7 +1308,8 @@ class StateMachine():
             if self.intersectionDecision == 14:
                 pass
             else:
-                raise ValueError("self.intersectionDecision id wrong: ",self.intersectionDecision)
+                self.plan_new_path()
+                print("self.intersectionDecision id wrong: ",self.intersectionDecision)
             print("highway decision: going " + self.decisionList[self.intersectionDecision])
         if self.initialPoints is None:
             self.set_current_angle()
@@ -1303,20 +1357,17 @@ class StateMachine():
     def parking_detected(self):
         return self.object_detected(4)
     def is_green(self):
-        if not self.simulation: #if not simulation consider green
-            return True
+        self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
+        if self.orientation==1 or self.orientation==3: #N or S
+            topic = 'start'
         else:
-            self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
-            if self.orientation==1 or self.orientation==3: #N or S
-                topic = 'start'
-            else:
-                topic = 'master'
-            try:
-                state=rospy.wait_for_message('/automobile/trafficlight/'+topic,Byte,timeout=3)#0=red,1=yellow,2=green
-            except:
-                print("traffic light timed out")
-                return True
-            return True if state.data == 2 else False
+            topic = 'master'
+        try:
+            state=rospy.wait_for_message('/automobile/trafficlight/'+topic,Byte,timeout=3)#0=red,1=yellow,2=green
+        except:
+            print("traffic light timed out")
+            return True
+        return True if state.data == 2 else False
     def crosswalk_sign_detected(self):
         return self.object_detected(5)
     def pedestrian_appears(self):
