@@ -1573,13 +1573,7 @@ if __name__ == '__main__':
     parser.add_argument("--custom", type=str, default=False, help="Custom path")
     # args, unknown = parser.parse_known_args()
     args = parser.parse_args(rospy.myargv()[1:])
-    if args.simulation=="True":
-        s = True
-    else:
-        s = False
-    if args.custom=="True":
-        c = True
-    else:
-        c = False
+    s = args.simulation=="True" 
+    c = args.custom=="True"
     node = StateMachine(simulation=s,planned_path=args.path,custom_path=c)
     rospy.spin()
