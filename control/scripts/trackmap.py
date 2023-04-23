@@ -92,8 +92,8 @@ class track_map():
                 except:
                     pass
             else:
-                self.add_edge('int1S','start')
-                self.add_edge('int1W','start')
+                self.add_edge('int1S','start',1)
+                self.add_edge('int1W','start',0)
             if self.planned_path[i] != "parkingN" and self.planned_path[i] != "parkingS" and loc != "parkingN" and loc != "parkingS":
                 self.rm_edge('track1N','parkingN')
                 self.rm_edge('parkingN','track2N')

@@ -38,6 +38,7 @@ class StateMachine():
             self.right_exit_trajectory = self.right_exit_trajectory_sim
             self.left_exit_trajectory = self.left_exit_trajectory_sim
             self.parallelParkAngle = 45
+            self.overtakeAngle = np.pi/4
             self.initializationTime = 2
             self.maxspeed = 0.175
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PIDSim.json', 'r')
@@ -75,6 +76,7 @@ class StateMachine():
             self.right_exit_trajectory = self.right_exit_trajectory_real
             self.left_exit_trajectory = self.left_exit_trajectory_real
             self.parallelParkAngle = 35
+            self.overtakeAngle = np.pi/5
             self.initializationTime = 3.57
             self.maxspeed = 0.15
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
@@ -103,10 +105,10 @@ class StateMachine():
         self.history = 0
 
         #sign
-        self.class_names = ['oneway', 'highwayexit', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayentrance', 'priority',
+        self.class_names = ['oneway', 'highwayentrance', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayexit', 'priority',
                 'lights','block','pedestrian','car','others','nothing']
         self.min_sizes = [25,25,30,000,40,42,25,25,25,130,100,72,130]
-        self.max_sizes = [50,75,70,000,75,150,50,75,50,200,150,200,300]
+        self.max_sizes = [50,75,70,000,75,150,50,75,75,200,150,200,300]
         self.center = -1
         self.detected_objects = []
         self.numObj = -1
@@ -545,6 +547,12 @@ class StateMachine():
                 self.doneManeuvering = False #set to false before entering state 3
                 self.state = 3
                 return 1
+        elif self.pedestrian_appears():
+            print("pedestrian appears!!! -> state 5")
+            self.history = self.state
+            self.state = 5
+            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+            return 1
         # Determine the steering angle based on the center publish the steering command
         self.publish_cmd_vel(self.get_steering_angle()) 
         return 0
@@ -574,6 +582,12 @@ class StateMachine():
         return 0
     
     def maneuverInt(self):
+        if self.pedestrian_appears():
+            print("pedestrian appears!!! -> state 5")
+            self.history = self.state
+            self.state = 5
+            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+            return 1
         if self.doneManeuvering:
             print("done intersection maneuvering.")
             self.doneManeuvering = False #reset
@@ -706,7 +720,7 @@ class StateMachine():
                 self.history = None
                 return 1
         else:
-            print("pedestrian appears!!!")
+            # print("pedestrian appears!!!")
             self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
         #Action: idle
         self.idle()
@@ -723,7 +737,7 @@ class StateMachine():
         #         self.state = 1
         #         return 1
         if self.decisionsI < len(self.decisions):
-            if self.decisions[self.decisionsI] == 14 and abs(self.yaw-0.1) <= 0.05: #tune this
+            if self.decisions[self.decisionsI] == 14 and abs(self.yaw-0.15) <= 0.05: #tune this
                 self.doneManeuvering = False
                 self.state = 12
                 return 1
@@ -773,7 +787,12 @@ class StateMachine():
         #     else:
         #         self.carCleared = True
         #     return 0
-        
+        if self.pedestrian_appears():
+            print("pedestrian appears!!! -> state 5")
+            self.history = self.state
+            self.state = 5
+            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+            return 1
         if self.doneManeuvering:
             print("done overtaking. Back to lane following...")
             self.doneManeuvering = False #reset
@@ -796,7 +815,7 @@ class StateMachine():
                 self.odomTimer = rospy.Time.now()
                 self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
             if self.intersectionState==0: #adjusting
-                error = self.yaw - (self.overtaking_angle + np.pi/5)
+                error = self.yaw - (self.overtaking_angle + self.overtakeAngle)
                 if error>np.pi:
                     error-=2*np.pi
                 elif error<-np.pi:
@@ -827,7 +846,7 @@ class StateMachine():
                 self.publish_cmd_vel(23, self.maxspeed*0.9)
                 return 0
             elif self.intersectionState==2: #adjusting
-                error = self.yaw - (self.overtaking_angle - np.pi/5)
+                error = self.yaw - (self.overtaking_angle - self.overtakeAngle)
                 if error>np.pi:
                     error-=2*np.pi
                 elif error<-np.pi:
@@ -854,6 +873,12 @@ class StateMachine():
                 return 0
     
     def roundabout(self):
+        if self.pedestrian_appears():
+            print("pedestrian appears!!! -> state 5")
+            self.history = self.state
+            self.state = 5
+            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+            return 1
         if self.doneManeuvering:
             print("done roundabout maneuvering. Back to lane following...")
             self.doneManeuvering = False #reset
@@ -961,6 +986,12 @@ class StateMachine():
         return 0
 
     def park(self):
+        if self.pedestrian_appears():
+            print("pedestrian appears!!! -> state 5")
+            self.history = self.state
+            self.state = 5
+            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+            return 1
         if self.doneParking:
             print("done parking maneuvering. Stopping vehicle...")
             self.doneParking = False #reset
@@ -1137,6 +1168,12 @@ class StateMachine():
                     return 0
     
     def exitPark(self):
+        if self.pedestrian_appears():
+            print("pedestrian appears!!! -> state 5")
+            self.history = self.state
+            self.state = 5
+            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+            return 1
         if self.doneManeuvering:
             print("done exit maneuvering. Back to lane following...")
             self.doneManeuvering = False #reset
@@ -1288,6 +1325,12 @@ class StateMachine():
                 return 0
     
     def curvedpath(self):
+        if self.pedestrian_appears():
+            print("pedestrian appears!!! -> state 5")
+            self.history = self.state
+            self.state = 5
+            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+            return 1
         if self.doneManeuvering:
             print("done curvedpath maneuvering.")
             self.doneManeuvering = False #reset
