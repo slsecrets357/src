@@ -32,6 +32,8 @@ class track_map():
         [5.28,7.83],[4.9,9.69],[3.83,6.61],[4.13,7],
         [2.7,2],[0.45,5.83],[11,3.5],[4.6,1.7],[4.9,5.87],[8.56,3.92],
         [4.3,2.1],[3,1.7],[0,0],[10,5],[6,13],[11.9,4.7]]
+        self.dashedlines = ['parkingN','parkingS','track2N','track2S',
+        'int5N','int6N','int6S','highwayN','highwayS']
         self.planned_path = path
         
         # graph map creation (run to get edgelist)
@@ -76,9 +78,6 @@ class track_map():
             # print(f"User clicked on ({x}, {y})")
             print(self.locateM(x,y))
             self.planned_path.append(self.locateM(x,y))
-
-    def get_location_cood(self,loc):
-        return self.map_graph.nodes[loc]['coord']
 
     def plan_path(self):
         # get the path and directions
@@ -187,13 +186,16 @@ class track_map():
         cv2.imshow(windowName, img_map)
         key = cv2.waitKey(0)
 
-    def decision_point(self,x,y):
+    def decision_point(self,x,y): # include yaw check as well
         loc = self.location_decision_points[self.locations.index(self.location)]
         d = (loc[0]-x)**2+(loc[1]-y)**2
         if d<0.25:
             return True
         else:
             return False
+
+    def can_overtake(self,x,y,rot):
+        return self.locate(x,y,rot) in self.dashedlines
 
     def locate(self,x,y,rot):
         # get current location based on position and orientation
@@ -509,9 +511,10 @@ if __name__ == '__main__':
     m = json.load(open(os.path.dirname(os.path.realpath(__file__))+'/paths/path.json', 'r'))
     # print(m)
     node = track_map(0,15,1.5,m)
+    node.get_location_dest('start')
     # node.make_map()
     # node.draw_map()
-    node.custum_path()
-    node.plan_path()
+    # node.custum_path()
+    # node.plan_path()
     # node.draw_map_edgelist()
     # node.draw_map_graphml()
