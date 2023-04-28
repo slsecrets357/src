@@ -1535,6 +1535,7 @@ class StateMachine():
         else:
             topic = 'master'
         try:
+            self.idle()
             state=rospy.wait_for_message('/automobile/trafficlight/'+topic,Byte,timeout=1)#0=red,1=yellow,2=green
         except:
             print("traffic light timed out")
@@ -1672,8 +1673,11 @@ class StateMachine():
         self.dt = (rospy.Time.now()-self.timer4).to_sec()
         self.timer4 = rospy.Time.now()
         image_center = 640 / 2
-        error = (self.center - offset - image_center)
-        d_error = (error-self.last)/self.dt
+        error = (self.center - image_center)
+        try:
+            d_error = (error-self.last)/self.dt
+        except:
+            return 0
         self.last = error
         steering_angle = (error*self.p+d_error*self.d)
         return steering_angle
