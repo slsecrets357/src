@@ -46,6 +46,7 @@ class StateMachine():
             if custom_path:
                 self.track_map = track_map()
                 self.track_map.custum_path()
+            self.plan_path(custom_path, planned_path)
         else:
             # serialNODE
             from messageconverter import MessageConverter
@@ -105,6 +106,8 @@ class StateMachine():
         # self.min_sizes = [25,25,40,50,40,35,30,25,25,130,75,72,130]
         # self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
         self.center = -1
+        self.image_center = 320
+        self.ArrivedAtStopline = False
         self.detected_objects = []
         self.numObj = -1
         self.box1 = []
@@ -149,9 +152,8 @@ class StateMachine():
 
         #timers
         self.timer = None
-        self.timer4 = rospy.Time.now()
-        self.timer5 = rospy.Time.now()
-        self.odomTimer = rospy.Time.now()
+        self.timerpid = rospy.Time.now()
+        self.timerodom = rospy.Time.now()
         self.timerPedestrian = None
         self.timerP = None
         self.timerO = None
@@ -159,7 +161,7 @@ class StateMachine():
         #intersection & parking
         #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
         #8:enterhwLeft, 9:enterhwStright, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
-        self.intersectionStop = None
+        self.intersectionStop = False
         self.intersectionDecision = -1
         self.parkingDecision = -1
         self.exitDecision = -1
@@ -169,12 +171,8 @@ class StateMachine():
         "exitrdbE","exitrdbS","exitrdbW","curvedpath"]
         self.doneManeuvering = False
         self.doneParking = False
-        self.destination_x = None
-        self.destination_y = None
-        self.destination_theta = None
         self.initialPoints = None
         self.intersectionState = 0
-        self.numIntersectionStates = 0
         self.trajectory = None
         #constants
         self.orientation = 1 #0,1,2,3=east,north,west,south
@@ -188,11 +186,7 @@ class StateMachine():
         self.offsets_x = np.array([self.left_offset_x, self.left_offset_x*1.2, self.right_offset_x])
         self.offsets_y = np.array([self.left_offset_y, 0, self.right_offset_y])
         self.rotation_matrices = np.array([[[1,0],[0,1]],[[0,-1],[1,0]],[[-1,0],[0,-1]],[[0,1],[-1,0]]]) #E,N,W,S
-
-        #carblock
-        self.carCleared = None
-        self.dotted = False
-        self.ArrivedAtStopline = False
+        self.offset = 0.3
 
         # Create service proxy
         # self.get_dir = rospy.ServiceProxy('get_direction',get_direction)
@@ -231,26 +225,25 @@ class StateMachine():
         
         rospy.on_shutdown(shutdown)
 
-        self.parkAdjust = True
-        self.offset = 0.3
+        self.parkAdjust = True #adjust flag for forward/backward
+
+        #size of detected objects
         self.parksize = 0
         self.carsize = 0
 
-        self.light = False #light detected in stop intersection state
+        #flag for light, highway, curvedpath and roadblock
+        self.light = False
         self.hw = False
-        self.rdb = False
+        self.cp = False
+        self.roadblock = False
+
         self.rdbExitYaw = 0
-        self.rdbTransf = 0
+        # self.rdbTransf = 0
         self.carBlockSem = -1
         self.toggle = 0
-        self.t1 = time.time()
-        self.cp = False
-        self.adjustYawError = 0.1
-        self.roadblock = False
+        # self.t1 = time.time()
+        self.adjustYawError = 0.1 #yaw adjust for intersection maneuvering
         self.localise_before_decision = False
-
-        if self.simulation:
-            self.plan_path(custom_path, planned_path)
 
     def localise(self):
         try:
@@ -312,9 +305,6 @@ class StateMachine():
     def plan_new_path(self):
         self.localise()
         self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
-        # print(self.planned_path)
-        # del self.planned_path[:self.decisionsI-1]
-        # print("new",self.planned_path)
         self.track_map.planned_path = self.planned_path
         self.track_map.plan_path()
         if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
@@ -419,7 +409,7 @@ class StateMachine():
         elif self.state == 7: #Carblock
             return self.carBlock()
         elif self.state == 8: #Roundabout
-            return self.roundabout() #not implemented yet
+            return self.roundabout()
         elif self.state == 9: #Parking
             if self.timerP is None:
                 self.timerP = rospy.Time.now() + rospy.Duration(1.57) # stop before parking
@@ -444,7 +434,6 @@ class StateMachine():
                         self.idle()
                     else:
                         self.msg.data = '{"action":"4","activate": true}'
-                    # self.msg.data = '{"action":"4","activate": true}'
                 elif self.toggle == 1: 
                     self.toggle = 2
                     self.idle()
@@ -454,9 +443,7 @@ class StateMachine():
                         self.idle()
                     else:
                         self.msg.data = '{"action":"5","activate": true}'
-                    # self.msg.data = '{"action":"5","activate": true}'
-                # self.cmd_vel_pub.publish(self.msg)
-                if self.simulation:
+                if not self.simulation:
                     self._write(self.msg)
                 return 0
         elif self.state == 11: #parked
@@ -485,8 +472,7 @@ class StateMachine():
             self.intersectionStop = True
             self.state = 1
             return 1
-        elif self.light_detected(): #change this to stop till light turns green
-            #call service to check light color
+        elif self.light_detected():
             if self.is_green():
                 print("green light detected -> state 1")
                 self.intersectionStop = False
@@ -510,7 +496,6 @@ class StateMachine():
             if self.cp: #can't overtake in curved path
                 self.idle()
                 return 0
-            # print("Carblock -> 7")
             if self.car_detected():
                 self.carBlockSem = 20
             else:
@@ -524,6 +509,7 @@ class StateMachine():
             elif rospy.Time.now() >= self.timerO:
                 self.timerO = None
                 self.carBlockSem = -1
+                # check for dotted line overtaking
                 # self.localise()
                 # if self.track_map.can_overtake(self.x,self.y,self.yaw):
                 #     self.history = self.state
@@ -538,9 +524,6 @@ class StateMachine():
             else:
                 self.idle()
                 return 0
-        # elif self.entering_roundabout(): #revamp this
-        #     self.state = 1 #should be approaching roundabout state similar to approachInt
-        #     return 1
         elif self.parking_detected():
             # if not at parking decision yet pass
             if self.decisionsI >= len(self.decisions):
@@ -569,7 +552,6 @@ class StateMachine():
             self.doneManeuvering = False #set to false before entering state 3
             self.state = 3
             return 1
-
         # Determine the steering angle based on the center and publish the steering command
         self.publish_cmd_vel(self.get_steering_angle())
         return 0
@@ -670,6 +652,7 @@ class StateMachine():
                         self.destinationAngle += np.pi*2
                     self.trajectory = self.left_trajectory
                     self.intersectionDecision = 0
+            return 0
 
         if self.pedestrian_appears():
             print("pedestrian appears!!! -> state 5")
@@ -745,7 +728,7 @@ class StateMachine():
             self.initialPoints = np.array([self.x, self.y])
             # print("initialPoints points: ", self.initialPoints)
             self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-            self.odomTimer = rospy.Time.now()
+            self.timerodom = rospy.Time.now()
             self.intersectionState = 0 #adjusting angle:0, trajectory following:1, adjusting angle2: 2..
             self.adjustYawError = 0.15 if self.intersectionDecision!=1 else 0.05
         self.odometry()
@@ -813,7 +796,7 @@ class StateMachine():
             return 1
         #Action: slow down
         # Publish the steering command
-        self.publish_cmd_vel(self.get_steering_angle(offset=-25), self.maxspeed*0.66) #Slower
+        self.publish_cmd_vel(self.get_steering_angle(offset=25), self.maxspeed*0.66) #Slower
         return 0
     
     def stopPedestrian(self):
@@ -831,14 +814,6 @@ class StateMachine():
         return 0 
     
     def highway(self):
-        # if self.highway_exit_detected():
-        #     if self.entering_roundabout(): #check this
-        #         self.state = 1 #should be approaching roundabout state similar to approachInt
-        #         return 1
-        #     else: #go to approachInt
-        #         self.intersectionStop = False
-        #         self.state = 1
-        #         return 1
         if self.decisionsI < len(self.decisions):
             if self.decisions[self.decisionsI] == 14 and abs(self.yaw-0.15) <= 0.05: #tune this
                 self.doneManeuvering = False
@@ -880,16 +855,6 @@ class StateMachine():
     def carBlock(self):
         #/entry: checkDotted
         #action: overtake or wait
-        # if self.carCleared is None:
-        #     self.carCleared = False
-        # if self.dotted:#use service
-        #     #overtake
-        # else: #wait
-        #     if self.car_detected():
-        #         self.idle()
-        #     else:
-        #         self.carCleared = True
-        #     return 0
         if self.pedestrian_appears():
             print("pedestrian appears!!! -> state 5")
             self.history = self.state
@@ -915,7 +880,7 @@ class StateMachine():
                 self.offset = 0
                 # print("begin going straight for "+str(self.offset)+"m")
                 self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-                self.odomTimer = rospy.Time.now()
+                self.timerodom = rospy.Time.now()
                 self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
             if self.intersectionState==0: #adjusting
                 error = self.yaw - (self.overtaking_angle + self.overtakeAngle)
@@ -1031,9 +996,9 @@ class StateMachine():
             # print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
             self.initialPoints = np.array([self.x, self.y])
             # print("initialPoints points: ", self.initialPoints)
-            self.rdbTransf = -self.orientations[self.orientation]
+            # self.rdbTransf = -self.orientations[self.orientation]
             self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-            self.odomTimer = rospy.Time.now()
+            self.timerodom = rospy.Time.now()
             self.offset = 0.4
             self.intersectionState = 0#adjusting angle:0, trajectory following:1, adjusting angle2: 2..
         self.odometry()
@@ -1049,7 +1014,7 @@ class StateMachine():
             if x >= self.offset:
                 self.intersectionState+=1
                 self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-                self.odomTimer = rospy.Time.now()
+                self.timerodom = rospy.Time.now()
                 self.error_sum = 0 #reset pid errors
                 self.last_error = 0
                 print("done going straight. Transitioning to trajectory following")
@@ -1150,7 +1115,7 @@ class StateMachine():
                 self.offset = 3.2 if self.simulation else 1.9 + self.parksize
                 # print("begin going straight for "+str(self.offset)+"m")
                 self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-                self.odomTimer = rospy.Time.now()
+                self.timerodom = rospy.Time.now()
                 self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
             self.odometry()
             poses = np.array([self.odomX, self.odomY])
@@ -1179,19 +1144,11 @@ class StateMachine():
                     error+=2*np.pi
                 # print("yaw, error: ", self.yaw, error)
                 if abs(error) >= self.parallelParkAngle*np.pi/180:
-                    self.intersectionState = 3 # skip adjusting 2
+                    self.intersectionState = 2
                     print(f"{self.parallelParkAngle} degrees...")
-                    # self.timer5 = rospy.Time.now()+rospy.Duration(3) #change to odom
                 self.publish_cmd_vel(23, -self.maxspeed*0.9)
                 return 0
-            # elif self.intersectionState==2: #adjusting
-            #     if rospy.Time.now() >= self.timer5:
-            #         self.intersectionState = 3
-            #         self.timer5 = None
-            #         # print("done going back. begin adjusting angle round2...")
-            #     self.publish_cmd_vel(0, -self.maxspeed*0.9)
-            #     return 0
-            elif self.intersectionState==3: #adjusting
+            elif self.intersectionState==2: #adjusting
                 error = self.yaw - self.destinationAngle
                 if error>np.pi:
                     error-=2*np.pi
@@ -1215,7 +1172,7 @@ class StateMachine():
                 self.carsize = 0
                 # print("begin going straight for "+str(self.offset)+"m")
                 self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-                self.odomTimer = rospy.Time.now()
+                self.timerodom = rospy.Time.now()
                 self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
             self.odometry()
             poses = np.array([self.odomX, self.odomY])
@@ -1226,7 +1183,7 @@ class StateMachine():
                 if abs(x)>=self.offset:
                     self.intersectionState+=1 #done adjusting
                     self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-                    self.odomTimer = rospy.Time.now()
+                    self.timerodom = rospy.Time.now()
                     # print("done going straight. Transitioning to trajectory following")
                     # print(f"current odom position: ({self.odomX},{self.odomY})")
                     self.error_sum = 0 #reset pid errors
@@ -1346,7 +1303,7 @@ class StateMachine():
                 self.initialPoints = np.array([self.x, self.y])
                 # print("initialPoints points: ", self.initialPoints)
                 self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-                self.odomTimer = rospy.Time.now()
+                self.timerodom = rospy.Time.now()
                 self.intersectionState = 1 if self.intersectionDecision!=2 else 1#adjusting angle:0, trajectory following:1, adjusting angle2: 2..
             self.yaw=(self.yaw+3.14159)%(6.28318) #flip Yaw
             self.odometry()
@@ -1415,7 +1372,7 @@ class StateMachine():
                 self.offset = 0
                 # print("begin going straight for "+str(self.offset)+"m")
                 self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-                self.odomTimer = rospy.Time.now()
+                self.timerodom = rospy.Time.now()
                 self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
             self.odometry()
             poses = np.array([self.odomX, self.odomY])
@@ -1507,7 +1464,7 @@ class StateMachine():
             # print("initialPoints points: ", self.initialPoints)
             self.offset = 1.5 #tune this
             self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-            self.odomTimer = rospy.Time.now()
+            self.timerodom = rospy.Time.now()
             self.intersectionState = 0
         self.odometry()
         poses = np.array([self.odomX,self.odomY])
@@ -1583,25 +1540,25 @@ class StateMachine():
     #odom helper functions
     def pid(self, error):
         # self.error_sum += error * self.dt
-        dt = (rospy.Time.now()-self.timer4).to_sec()
+        dt = (rospy.Time.now()-self.timerpid).to_sec()
         # rospy.loginfo("time: %.4f", self.dt)
-        self.timer4 = rospy.Time.now()
+        self.timerpid = rospy.Time.now()
         derivative = (error - self.last_error) / dt
         output = self.kp * error + self.kd * derivative #+ self.ki * self.error_sum
         self.last_error = error
         return output
     def pid2(self, error):
         # self.error_sum2 += error * self.dt
-        dt = (rospy.Time.now()-self.timer4).to_sec()
+        dt = (rospy.Time.now()-self.timerpid).to_sec()
         # rospy.loginfo("time: %.4f", self.dt)
-        self.timer4 = rospy.Time.now()
+        self.timerpid = rospy.Time.now()
         derivative = (error - self.last_error2) / dt
         output = self.kp2 * error + self.kd2 * derivative #+ self.ki2 * self.error_sum2
         self.last_error2 = error
         return output
     def odometry(self):
-        dt = (rospy.Time.now()-self.odomTimer).to_sec()
-        self.odomTimer = rospy.Time.now()
+        dt = (rospy.Time.now()-self.timerodom).to_sec()
+        self.timerodom = rospy.Time.now()
         magnitude = self.velocity*dt*self.odomRatio
         self.odomX += magnitude * math.cos(self.yaw)
         self.odomY += magnitude * math.sin(self.yaw)
@@ -1688,10 +1645,9 @@ class StateMachine():
         :return: Steering angle in radians
         """
         # Calculate the steering angle in radians
-        self.dt = (rospy.Time.now()-self.timer4).to_sec()
-        self.timer4 = rospy.Time.now()
-        image_center = 640 / 2
-        error = (self.center - image_center)
+        self.dt = (rospy.Time.now()-self.timerpid).to_sec()
+        self.timerpid = rospy.Time.now()
+        error = (self.center + offset - self.image_center)
         try:
             d_error = (error-self.last)/self.dt
         except:
