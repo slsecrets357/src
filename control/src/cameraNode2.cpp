@@ -248,9 +248,10 @@ int main(int argc, char** argv) {
     int opt;
     bool sFlag = false;
     bool lFlag = false;
+    std::string modelnum = "11";
     
     // Loop through command line arguments
-    while ((opt = getopt(argc, argv, "hs:l:")) != -1) {
+    while ((opt = getopt(argc, argv, "hs:l:m:")) != -1) {
         switch (opt) {
             case 's':
                 if (std::strcmp(optarg, "True") == 0) {
@@ -262,9 +263,14 @@ int main(int argc, char** argv) {
                     lFlag = true;
                 }
                 break;
+            case 'm':
+                // modelnum = std::stoi(optarg); // convert optarg to integer
+                modelnum = optarg;
+                break;
             case 'h':
                 std::cout << "-s to print sign detection\n";
                 std::cout << "-l to print lane detection\n";
+                std::cout << "-m to set the model number\n";
                 exit(0);
             default:
                 std::cerr << "Invalid argument\n";
@@ -276,13 +282,23 @@ int main(int argc, char** argv) {
     yoloFastestv2 api;
     std::string filePathParam = __FILE__;
     size_t pos = filePathParam.rfind("/") + 1;
-    filePathParam.replace(pos, std::string::npos, "model/amy357s-opt.param");
+    filePathParam.replace(pos, std::string::npos, "model/sissi"+modelnum+"-opt.param");
     const char* param = filePathParam.c_str();
     std::string filePathBin = __FILE__;
     pos = filePathBin.rfind("/") + 1;
-    filePathBin.replace(pos, std::string::npos, "model/amy357s-opt.bin");
+    filePathBin.replace(pos, std::string::npos, "model/sissi"+modelnum+"-opt.bin");
     const char* bin = filePathBin.c_str();
     api.loadModel(param,bin);
+
+    // std::string filePathParam = __FILE__;
+    // size_t pos = filePathParam.rfind("/") + 1;
+    // filePathParam.replace(pos, std::string::npos, "model/amy357s-opt.param");
+    // const char* param = filePathParam.c_str();
+    // std::string filePathBin = __FILE__;
+    // pos = filePathBin.rfind("/") + 1;
+    // filePathBin.replace(pos, std::string::npos, "model/amy357s-opt.bin");
+    // const char* bin = filePathBin.c_str();
+    // api.loadModel(param,bin);
 
     ros::NodeHandle nh;
     ros::Publisher lane_pub = nh.advertise<utils::Lane>("lane", 3);

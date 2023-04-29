@@ -150,6 +150,7 @@ public:
         }
         if (print) {
             std::cout << "center: " << center << std::endl;
+            std::cout << "thresh: " << threshold_value << std::endl;
         }
         return center;
     }
