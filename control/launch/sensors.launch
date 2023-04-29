@@ -1,7 +1,14 @@
 <launch>
-    <node pkg="control" type="cameraNode2" 				name="cameraNODE"  			    output="screen"/>
+<arg name="print_sign"  default="False" doc="print sign detection (True or False)"/>
+<arg name="print_lane"  default="False" doc="print lane detection (True or False)"/>
+<arg name="model"  default="11" doc="model number"/>
+
+    <node pkg="control" args="-s $(arg print_sign) -l $(arg print_lane) -m $(arg model)" type="cameraNode2" 				name="cameraNODE"  			    output="screen"/>
+    <!-- <node pkg="control" type="lane" 				name="laneNODE"  			    output="screen"/>
+    <node pkg="control" type="signFastest" 				name="signNODE"  			    output="screen"/> -->
     <!-- <node pkg="input" type="sensors.py" 				name="sensorNODE"  				output="screen"/> -->
     <node pkg="input" type="imuNODE.py" 				name="imuNODE"  				output="screen"/>
     <node pkg="input" type="encoderNODE.py" 		    name="encodeNODE"  				output="screen"/>
     <!-- <node pkg="output" type="serialNODE.py" 			name="serialNODE"  				output="screen"/> -->
+    <!-- <node pkg="input" type="cameraNODE.py" 				name="camaeraNODE"  			output="screen"/> -->
 </launch>
