@@ -86,8 +86,8 @@ class StateMachine():
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
             #8:enterhwLeft, 9:enterhwStright, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
             # self.decisions = [2,3,6,0,4]
-            # self.decisions = [2,2,2,2,2,2,2,2,2]
-            self.decisions = [10,12]
+            self.decisions = [2,2,2,2,2,2,2,2,2]
+            # self.decisions = [10,12]
             self.decisionsI = 0
             self.full_path = ['test','test','test','test','test','test','test','test','test','test','test','test','test']
             self.planned_path = ['test1']
@@ -216,8 +216,9 @@ class StateMachine():
             msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
             # msg.data = '{"action":"1","speed":'+str(0.0)+'}'
             # msg2.data = '{"action":"2","steerAngle":'+str(0.0)+'}'
-            for haha in range(10):
+            for haha in range(20):
                 self._write(msg)
+                print("stop!")
                 # pub.publish(msg)
                 self.rate.sleep()
         
@@ -1616,7 +1617,7 @@ class StateMachine():
     def left_trajectory_real(self, x):
         return math.exp(3.57*x-4.3)
     def right_trajectory_real(self, x):
-        return -math.exp(4*x-2.05)
+        return -math.exp(4*x-2.35)
     def left_exit_trajectory_real(self, x):
         return math.exp(4*x-3.05)
     def right_exit_trajectory_real(self, x):
@@ -1661,7 +1662,7 @@ class StateMachine():
         if obj_id==10:
             conf_thresh = 0.35
         else:
-            conf_thresh = 0.7
+            conf_thresh = 0.8
         return size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= conf_thresh #check this
     def get_steering_angle(self,offset=0):
         """
