@@ -30,7 +30,7 @@ class StateMachine():
             print("Simulation mode")
             self.publish_cmd_vel = self.publish_cmd_vel_sim
             self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
-            self.min_sizes = [25,25,40,50,40,35,30,25,25,130,75,72,130]
+            self.min_sizes = [25,25,40,50,45,35,30,25,25,130,75,72,130]
             self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
             self.odomRatio = 1
             self.process_yaw = self.process_yaw_sim
@@ -53,8 +53,8 @@ class StateMachine():
             import serial
             devFile = '/dev/ttyACM0'
             self.publish_cmd_vel = self.publish_cmd_vel_real
-            self.min_sizes = [25,25,30,000,40,42,25,25,25,130,100,72,130]
-            self.max_sizes = [50,75,70,000,75,150,50,75,75,200,150,200,300]
+            self.min_sizes = [25,25,40,50,40,35,30,25,25,150,75,72,130]
+            self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
             # comm init
             self.serialCom = serial.Serial(devFile,19200,timeout=1)
             self.serialCom.flushInput()
@@ -88,8 +88,9 @@ class StateMachine():
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
             #8:enterhwLeft, 9:enterhwStright, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
             # self.decisions = [2,3,6,0,4]
+            self.decisions = [3,5,1]
             # self.decisions = [2,2,2,2,2,2,2,2,2]
-            self.decisions = [10,12]
+            # self.decisions = [10,12]
             self.decisionsI = 0
             self.full_path = ['test','test','test','test','test','test','test','test','test','test','test','test','test']
             self.planned_path = ['test1']
@@ -204,6 +205,7 @@ class StateMachine():
 
         #stop at shutdown
         def shutdown():
+            self.lane_sub.unregister()
             if self.simulation:
                 pub = rospy.Publisher("/automobile/command", String, queue_size=3)
                 msg = String()
@@ -220,7 +222,6 @@ class StateMachine():
                 msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
                 for haha in range(20):
                     self._write(msg)
-                    print("stop!")
                     self.rate.sleep()
         
         rospy.on_shutdown(shutdown)
@@ -796,7 +797,7 @@ class StateMachine():
             return 1
         #Action: slow down
         # Publish the steering command
-        self.publish_cmd_vel(self.get_steering_angle(offset=25), self.maxspeed*0.66) #Slower
+        self.publish_cmd_vel(self.get_steering_angle(offset=40), self.maxspeed*0.66) #Slower
         return 0
     
     def stopPedestrian(self):
@@ -1112,7 +1113,7 @@ class StateMachine():
                 # print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
                 self.initialPoints = np.array([self.x, self.y])
                 # print("initialPoints points: ", self.initialPoints)
-                self.offset = 3.2 if self.simulation else 1.9 + self.parksize
+                self.offset = 3.2 if self.simulation else 2.1 + self.parksize
                 # print("begin going straight for "+str(self.offset)+"m")
                 self.odomX, self.odomY = 0.0, 0.0 #reset x,y
                 self.timerodom = rospy.Time.now()
@@ -1304,7 +1305,8 @@ class StateMachine():
                 # print("initialPoints points: ", self.initialPoints)
                 self.odomX, self.odomY = 0.0, 0.0 #reset x,y
                 self.timerodom = rospy.Time.now()
-                self.intersectionState = 1 if self.intersectionDecision!=2 else 1#adjusting angle:0, trajectory following:1, adjusting angle2: 2..
+                self.adjustYawError = 0.40 if self.exitDecision==5 else 0.05
+                self.intersectionState = 1
             self.yaw=(self.yaw+3.14159)%(6.28318) #flip Yaw
             self.odometry()
             poses = np.array([self.odomX,self.odomY])
@@ -1332,7 +1334,7 @@ class StateMachine():
                 desiredY = self.trajectory(x)
                 error = y - desiredY
                 # print("x, y_error: ",x,abs(error) )
-                arrived = abs(self.yaw-self.destinationAngle) <= 0.05
+                arrived = abs(self.yaw-self.destinationAngle) <= self.adjustYawError
                 # print("yaw_error: ")
                 # print(str(self.yaw-self.destinationAngle))
                 if arrived:
@@ -1353,7 +1355,7 @@ class StateMachine():
                 elif error<-np.pi:
                     error+=2*np.pi
                 # print("yaw, destAngle, error: ", self.yaw, self.destinationAngle, error)
-                if abs(error) <= 0.05:
+                if abs(error) <= self.adjustYawError:
                     # print("done adjusting angle!!")
                     self.doneManeuvering = True
                     self.error_sum = 0 #reset pid errors
@@ -1591,9 +1593,9 @@ class StateMachine():
     def left_trajectory_real(self, x):
         return math.exp(3.57*x-4.3)
     def right_trajectory_real(self, x):
-        return -math.exp(4*x-2.35)
+        return -math.exp(4*x-2.85)
     def left_exit_trajectory_real(self, x):
-        return math.exp(4*x-3.05)
+        return math.exp(4*x+2)
     def right_exit_trajectory_real(self, x):
         return -math.exp(4*x-3.05)
     def leftpark_trajectory(self, x):
@@ -1638,7 +1640,7 @@ class StateMachine():
         else:
             conf_thresh = 0.8
         return size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= conf_thresh #check this
-    def get_steering_angle(self,offset=0):
+    def get_steering_angle(self,offset=20):
         """
         Determine the steering angle based on the lane center
         :param center: lane center
