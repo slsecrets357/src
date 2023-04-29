@@ -56,10 +56,69 @@ class track_map():
         self.directions = []
         # self.plan_path()
 
+        # Convert to undirected graph and compute shortest paths
+        # H = self.map_graph.to_undirected()
+
+        # # Use TSP algorithm to find shortest path
+        # tsp_path = nx.approximation.traveling_salesman_problem(H,weight="weight",nodes=H.nodes)
+
+        # # Convert TSP solution to directed path
+        # directed_path = []
+        # for i in range(len(tsp_path)-1):
+        #     u = tsp_path[i]
+        #     v = tsp_path[i+1]
+        #     directed_path += nx.shortest_path(self.map_graph, u, v)
+
+        # print(directed_path)
+        # print(len(directed_path))
+        # self.path = directed_path
+
+        # Check if all edges have been traversed
+        # all_edges = set(self.map_graph.edges())
+        # traversed_edges = set(zip(directed_path, directed_path[1:]))
+        # untraversed_edges = all_edges - traversed_edges
+        # # Print untraversed edges
+        # if untraversed_edges:
+        #     print("The following edges were not traversed:")
+        #     for u, v in untraversed_edges:
+        #         print(f"{u} -> {v}")
+        # else:
+        #     print("All edges have been traversed.")
+
+        # path = []
+        # for u, v in untraversed_edges:
+        #     shortest_path = nx.shortest_path(self.map_graph, u, v, weight='weight')
+        #     path += shortest_path[:-1]
+        # # path += [untraversed_edges[-1][-1]]
+
+        # print(path)
+
+        # traversed_edges = set(zip(path, path[1:]))
+        # untraversed_edges = untraversed_edges - traversed_edges
+        # # Print untraversed edges
+        # if untraversed_edges:
+        #     print("The following edges were not traversed:")
+        #     for u, v in untraversed_edges:
+        #         print(f"{u} -> {v}")
+        # else:
+        #     print("All edges have been traversed.")
+
+        # Save directed path to a JSON file
+        # with open('/home/antoinedeng/Documents/Simulator/src/control/scripts/directed_path.json', 'w') as outfile:
+        #     json.dump(directed_path, outfile)
+
+    def get_location_dest(self,loc):
+        dirs = []
+        # print(self.map_graph.out_edges(loc,data=True))
+        for _, dest, data in self.map_graph.out_edges(loc, data=True):
+            dirs.append(data['dir'])
+        # print(dirs)
+        return dirs
+
     def get_location_cood(self,loc):
         return self.map_graph.nodes[loc]['coord']
 
-    def custum_path(self):
+    def custum_path(self, save=False):
         print("---Click on map to input path---")
         print("---Press any keys to continue---")
         self.regions = cv2.imread(os.path.dirname(os.path.realpath(__file__))+'/templates/map_graphv2.drawio.png')
@@ -71,6 +130,10 @@ class track_map():
         cv2.imshow(windowName,self.regions)
         key = cv2.waitKey(0)
         # self.plan_path()
+        if save:
+            # Save directed path to a JSON file
+            with open(os.path.dirname(os.path.realpath(__file__))+'/paths/test/curvedpath.json', 'w') as outfile:
+                json.dump(self.planned_path, outfile)
         cv2.destroyAllWindows()
 
     def mouse_event_handler(self, event, x, y, flags, param):
@@ -511,10 +574,10 @@ if __name__ == '__main__':
     m = json.load(open(os.path.dirname(os.path.realpath(__file__))+'/paths/path.json', 'r'))
     # print(m)
     node = track_map(0,15,1.5,m)
-    node.get_location_dest('start')
+    # node.get_location_dest('start')
     # node.make_map()
     # node.draw_map()
-    # node.custum_path()
+    # node.custum_path(save=True)
     # node.plan_path()
     # node.draw_map_edgelist()
     # node.draw_map_graphml()
