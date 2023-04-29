@@ -30,7 +30,7 @@ class StateMachine():
             print("Simulation mode")
             self.publish_cmd_vel = self.publish_cmd_vel_sim
             self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
-            self.min_sizes = [25,25,40,50,45,35,30,25,25,130,75,72,130]
+            self.min_sizes = [25,25,40,50,45,35,30,25,25,130,75,72,125]
             self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
             self.odomRatio = 1
             self.process_yaw = self.process_yaw_sim
@@ -39,7 +39,7 @@ class StateMachine():
             self.right_exit_trajectory = self.right_exit_trajectory_sim
             self.left_exit_trajectory = self.left_exit_trajectory_sim
             self.parallelParkAngle = 45
-            self.overtakeAngle = np.pi/4
+            self.overtakeAngle = np.pi/5
             self.initializationTime = 2
             self.maxspeed = 0.175
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PIDSim.json', 'r')
@@ -53,7 +53,7 @@ class StateMachine():
             import serial
             devFile = '/dev/ttyACM0'
             self.publish_cmd_vel = self.publish_cmd_vel_real
-            self.min_sizes = [25,25,40,50,40,35,30,25,25,150,75,72,130]
+            self.min_sizes = [25,25,40,50,45,35,30,25,25,150,75,72,125]
             self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
             # comm init
             self.serialCom = serial.Serial(devFile,19200,timeout=1)
@@ -100,6 +100,9 @@ class StateMachine():
                        "Carblock", "Roundabout", "Parking", "Initial", "Parked", "Curvedpath"] #13 states
         self.state = 10 #initial
         self.history = 0
+        self.highwaySpeed = self.maxspeed*1.33
+        self.highwayRight = True
+        self.highwaySide = 1 #1:right, -1:left
 
         #sign
         self.class_names = ['oneway', 'highwayentrance', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayexit', 'priority',
@@ -158,6 +161,9 @@ class StateMachine():
         self.timerPedestrian = None
         self.timerP = None
         self.timerO = None
+        self.timer1 = None
+        self.timer2 = None
+        self.flag1 = True
 
         #intersection & parking
         #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
@@ -815,32 +821,106 @@ class StateMachine():
         return 0 
     
     def highway(self):
+        # if self.highway_exit_detected():
+        #     if self.entering_roundabout(): #check this
+        #         self.state = 1 #should be approaching roundabout state similar to approachInt
+        #         return 1
+        #     else: #go to approachInt
+        #         self.intersectionStop = False
+        #         self.state = 1
+        #         return 1
+
+        #go to left side of highway
+        # if self.timer1 is None:
+        #     if self.highwayRight:
+        #         self.timer1 = rospy.Time.now() + rospy.Duration(12)
+        #         self.timer0 = None
+        #         print("go for 12s")
+        # elif rospy.Time.now() >= self.timer1:
+        #     if self.flag1:
+        #         self.highwayYaw = self.yaw
+        #         self.flag1 = False
+        #         print("highwayYaw: ", self.highwayYaw)
+        #     if self.highwayRight:
+        #         error = self.yaw - self.highwayYaw
+        #         if error>np.pi:
+        #             error-=2*np.pi
+        #         elif error<-np.pi:
+        #             error+=2*np.pi
+        #         if abs(error) > np.pi/6:
+        #             if self.timer0 is None:
+        #                 print("done turning. now go straight for 1.5s")
+        #                 self.timer0 = rospy.Time.now() + rospy.Duration(1.5)
+        #             if rospy.Time.now() >= self.timer0:
+        #                 self.timer0 = None
+        #                 self.timer1 = None
+        #                 self.highwayRight = False
+        #                 self.flag1 = True
+        #             self.publish_cmd_vel(0, self.highwaySpeed*0.5)
+        #         self.publish_cmd_vel(-23, self.highwaySpeed*0.5)
+        #         return 0
+
         if self.decisionsI < len(self.decisions):
             if self.decisions[self.decisionsI] == 14 and abs(self.yaw-0.15) <= 0.05: #tune this
                 self.doneManeuvering = False
+                self.timer0 = None
+                self.flag1 = True
+                self.highwaySpeed = self.maxspeed*1.33
                 self.state = 12
                 return 1
         if self.ArrivedAtStopline:
             self.doneManeuvering = False #set to false before entering state 3
+            self.timer0 = None
+            self.flag1 = True
+            self.highwaySpeed = self.maxspeed*1.33
             self.state = 3
             return 1
-        if self.car_detected() or self.carBlockSem > 0: #overtake
-            if self.car_detected():
-                self.carBlockSem = 20
-            else:
-                self.carBlockSem -= 1
-                if self.carBlockSem == 0:
-                    self.timerO = None
-                    return 0
+        if self.timer2 is not None and rospy.Time.now() >= self.timer2 and self.highwaySide == -1:
+            #go back to right side
+            print("timer2 expired & no car in sight. going back to right side")
+            self.timerO = None
+            self.timer2 = None
+            self.history = self.state
+            self.state = 7 #switch lane
+            return 1
+        car_sizes =  self.get_car_size()
+        num = len(car_sizes)
+        # detect car, check sizes, wait for 2s, then check again. 
+        # if 2 cars, size same, then stay idle
+        # if 1 car, overtake
+        if num > 0:
             if self.timerO is None:
-                self.timerO = rospy.Time.now() + rospy.Duration(1.57)
-                print("prepare to overtake")
-            elif rospy.Time.now() >= self.timerO:
-                self.carBlockSem = -1
-                self.timerO = None
-                self.history = self.state
-                self.state = 7
-                return 1
+                print("car detected, waiting for 2s to ascertain car's speed")
+                self.timerO = rospy.Time.now() + rospy.Duration(1)
+                self.numCars, self.firstDetectionSizes = num, car_sizes
+            if rospy.Time.now() >= self.timerO:
+                if self.highwaySide == -1:
+                    self.timer2 = rospy.Time.now() + rospy.Duration(3) #refresh timer
+                if num < 2:
+                    if self.highwaySide == 1: #on right side
+                        print("only one car, overtake, side is ", self.highwaySide) 
+                        self.timerO = None
+                        self.history = self.state
+                        self.state = 7 #overtake
+                        return 1
+                    else: # on left side.
+                        carSizeRatio = car_sizes[0][0]/car_sizes[0][1]
+                        if carSizeRatio >= 1.6: #means car is on other lane
+                            print("car detected but it's on the right. ignore.")
+                            self.publish_cmd_vel(self.get_steering_angle(offset = 37.5), self.highwaySpeed)
+                            return 0
+                # if self.flag1:
+                #     print("there are two cars, checking if they are static")
+                #     self.flag1 = False
+                #     static = abs(self.firstDetectionSizes[0] - car_sizes[0]) < 7 #tune this
+                #     if static:
+                #         self.highwaySpeed = 0
+                #         print("car is static")
+                #     else:
+                #         self.highwaySpeed = 0.66*self.maxspeed #tune this, tail the car
+                #         print("car is moving, we tail")
+                self.publish_cmd_vel(self.get_steering_angle(offset = 37.5), 0)
+                return 0
             else:
                 self.idle()
                 return 0
@@ -869,7 +949,10 @@ class StateMachine():
             self.history = None
             self.initialPoints = None #reset initial points
             self.timerP = None
+            self.highwaySide *= -1
             self.pl = 320
+            if self.highwaySide == -1:
+                self.timer2 = rospy.Time.now() + rospy.Duration(5) #tune this
             return 1
         if True: #change with left right overtaking if needed
             if self.initialPoints is None:
@@ -884,7 +967,7 @@ class StateMachine():
                 self.timerodom = rospy.Time.now()
                 self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
             if self.intersectionState==0: #adjusting
-                error = self.yaw - (self.overtaking_angle + self.overtakeAngle)
+                error = self.yaw - (self.overtaking_angle + self.overtakeAngle*self.highwaySide)
                 if error>np.pi:
                     error-=2*np.pi
                 elif error<-np.pi:
@@ -893,7 +976,7 @@ class StateMachine():
                 if abs(error) <= 0.05:
                     self.intersectionState += 1
                     # print("done adjusting angle!!")
-                self.publish_cmd_vel(-23, self.maxspeed*0.9)
+                self.publish_cmd_vel(-23*self.highwaySide, self.maxspeed*0.8)
                 return 0
             elif self.intersectionState==1: #adjusting
                 error = self.yaw - self.overtaking_angle
@@ -912,7 +995,7 @@ class StateMachine():
                         return 0
                     self.intersectionState += 1
                     # print("done adjusting angle!!")
-                self.publish_cmd_vel(23, self.maxspeed*0.9)
+                self.publish_cmd_vel(23*self.highwaySide, self.maxspeed*0.8)
                 return 0
             elif self.intersectionState==2: #adjusting
                 error = self.yaw - (self.overtaking_angle - self.overtakeAngle)
@@ -1615,6 +1698,30 @@ class StateMachine():
         return -math.sqrt(u)+0.25 if yaw<np.pi/2 or yaw>3*np.pi/2 else math.sqrt(u)+0.25
 
     #others
+    def get_car_size(self):
+        obj_id = 12 #car id
+        car_sizes = []
+        if self.numObj >= 2:
+            if self.detected_objects[0]==obj_id: 
+                box = self.box1 
+                conf = self.confidence[0]
+                size = min(box[2], box[3]) #height
+                if size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= 0.753:
+                    car_sizes.append([box[2],box[3]])
+            elif self.detected_objects[1]==obj_id:
+                box = self.box2
+                conf = self.confidence[1]
+                size = min(box[2], box[3]) #height
+                if size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= 0.753:
+                    car_sizes.append([box[2],box[3]])
+        elif self.numObj == 1:
+            if self.detected_objects[0]==obj_id: 
+                box = self.box1 
+                conf = self.confidence[0]
+                size = min(box[2], box[3])
+                if size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= 0.753:
+                    car_sizes.append([box[2],box[3]])
+        return car_sizes
     def object_detected(self, obj_id):
         if self.numObj >= 2:
             if self.detected_objects[0]==obj_id: 
@@ -1640,6 +1747,7 @@ class StateMachine():
         else:
             conf_thresh = 0.8
         return size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= conf_thresh #check this
+
     def get_steering_angle(self,offset=20):
         """
         Determine the steering angle based on the lane center
