@@ -611,55 +611,55 @@ class StateMachine():
     
     def maneuverInt(self):
         # need to reposition by changing trajectories
-        if self.roadblock_detected() and not self.roadblock and (abs(self.yaw-self.destinationAngle) <= 0.25 or abs(self.yaw-self.destinationAngle) >= 6.03):
-            self.roadblock = True
-            print("roadblock detected: recalculate path")
-            if self.simulation:
-                dests = self.track_map.get_location_dest(self.full_path[self.decisionsI])
-            else:
-                dests = [0,1] #CHANGE
-            if self.intersectionDecision == 0:
-                if 1 in dests:
-                    self.destinationAngle -= np.pi/2
-                    if self.destinationAngle < -0.5:
-                        self.destinationAngle += np.pi*2
-                    self.trajectory = self.straight_trajectory
-                    self.intersectionDecision = 1
-                    self.kd2 += 5
-                else:
-                    self.destinationAngle -= np.pi
-                    if self.destinationAngle < -0.5:
-                        self.destinationAngle += np.pi*2
-                    self.trajectory = self.right_trajectory
-                    self.intersectionDecision = 2
-            elif self.intersectionDecision == 1:
-                if 0 in dests:
-                    self.destinationAngle += np.pi/2
-                    if self.destinationAngle > 5.5:
-                        self.destinationAngle = 0
-                    self.trajectory = self.left_trajectory
-                    self.intersectionDecision = 0
-                else:
-                    self.destinationAngle -= np.pi/2
-                    if self.destinationAngle < 0.5:
-                        self.destinationAngle += np.pi*2
-                    self.trajectory = self.right_trajectory
-                    self.intersectionDecision = 2
-            else:
-                if 1 in dests:
-                    self.destinationAngle += np.pi/2
-                    if self.destinationAngle > 5.5:
-                        self.destinationAngle = 0
-                    self.trajectory = self.straight_trajectory
-                    self.intersectionDecision = 1
-                    self.kd2 += 5
-                else:
-                    self.destinationAngle -= np.pi
-                    if self.destinationAngle < -0.5:
-                        self.destinationAngle += np.pi*2
-                    self.trajectory = self.left_trajectory
-                    self.intersectionDecision = 0
-            return 0
+        # if self.roadblock_detected() and not self.roadblock and (abs(self.yaw-self.destinationAngle) <= 0.25 or abs(self.yaw-self.destinationAngle) >= 6.03):
+        #     self.roadblock = True
+        #     print("roadblock detected: recalculate path")
+        #     if self.simulation:
+        #         dests = self.track_map.get_location_dest(self.full_path[self.decisionsI])
+        #     else:
+        #         dests = [0,1] #CHANGE
+        #     if self.intersectionDecision == 0:
+        #         if 1 in dests:
+        #             self.destinationAngle -= np.pi/2
+        #             if self.destinationAngle < -0.5:
+        #                 self.destinationAngle += np.pi*2
+        #             self.trajectory = self.straight_trajectory
+        #             self.intersectionDecision = 1
+        #             self.kd2 += 5
+        #         else:
+        #             self.destinationAngle -= np.pi
+        #             if self.destinationAngle < -0.5:
+        #                 self.destinationAngle += np.pi*2
+        #             self.trajectory = self.right_trajectory
+        #             self.intersectionDecision = 2
+        #     elif self.intersectionDecision == 1:
+        #         if 0 in dests:
+        #             self.destinationAngle += np.pi/2
+        #             if self.destinationAngle > 5.5:
+        #                 self.destinationAngle = 0
+        #             self.trajectory = self.left_trajectory
+        #             self.intersectionDecision = 0
+        #         else:
+        #             self.destinationAngle -= np.pi/2
+        #             if self.destinationAngle < 0.5:
+        #                 self.destinationAngle += np.pi*2
+        #             self.trajectory = self.right_trajectory
+        #             self.intersectionDecision = 2
+        #     else:
+        #         if 1 in dests:
+        #             self.destinationAngle += np.pi/2
+        #             if self.destinationAngle > 5.5:
+        #                 self.destinationAngle = 0
+        #             self.trajectory = self.straight_trajectory
+        #             self.intersectionDecision = 1
+        #             self.kd2 += 5
+        #         else:
+        #             self.destinationAngle -= np.pi
+        #             if self.destinationAngle < -0.5:
+        #                 self.destinationAngle += np.pi*2
+        #             self.trajectory = self.left_trajectory
+        #             self.intersectionDecision = 0
+        #     return 0
 
         if self.pedestrian_appears():
             print("pedestrian appears!!! -> state 5")
@@ -867,6 +867,7 @@ class StateMachine():
                 self.flag1 = True
                 self.highwaySpeed = self.maxspeed*1.33
                 self.state = 12
+                self.highwaySide = 1
                 return 1
         if self.ArrivedAtStopline:
             self.doneManeuvering = False #set to false before entering state 3
@@ -874,6 +875,7 @@ class StateMachine():
             self.flag1 = True
             self.highwaySpeed = self.maxspeed*1.33
             self.state = 3
+            self.highwaySide = 1
             return 1
         if self.timer2 is not None and rospy.Time.now() >= self.timer2 and self.highwaySide == -1:
             #go back to right side
@@ -919,7 +921,7 @@ class StateMachine():
                 #     else:
                 #         self.highwaySpeed = 0.66*self.maxspeed #tune this, tail the car
                 #         print("car is moving, we tail")
-                self.publish_cmd_vel(self.get_steering_angle(offset = 37.5), 0)
+                self.idle()
                 return 0
             else:
                 self.idle()
@@ -949,7 +951,8 @@ class StateMachine():
             self.history = None
             self.initialPoints = None #reset initial points
             self.timerP = None
-            self.highwaySide *= -1
+            if self.state == 6:
+                self.highwaySide *= -1
             self.pl = 320
             if self.highwaySide == -1:
                 self.timer2 = rospy.Time.now() + rospy.Duration(5) #tune this
@@ -1604,7 +1607,7 @@ class StateMachine():
     def pedestrian_appears(self):
         return self.object_detected(11)
     def car_detected(self):
-        return self.object_detected(12) or self.object_detected(10)
+        return self.object_detected(12)
     def roadblock_detected(self):
         return self.object_detected(10)
 
@@ -1747,7 +1750,6 @@ class StateMachine():
         else:
             conf_thresh = 0.8
         return size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= conf_thresh #check this
-
     def get_steering_angle(self,offset=20):
         """
         Determine the steering angle based on the lane center
