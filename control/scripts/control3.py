@@ -992,7 +992,8 @@ class StateMachine():
             self.history = None
             self.initialPoints = None #reset initial points
             self.timerP = None
-            self.highwaySide *= -1
+            if self.state == 6:
+                self.highwaySide *= -1
             self.pl = 320
             self.overtakeAngle = np.pi/5
             if self.highwaySide == -1:
