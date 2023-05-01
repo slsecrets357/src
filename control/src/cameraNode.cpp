@@ -148,6 +148,11 @@ static void signDetectionCallback(const ros::TimerEvent& event, yoloFastestv2 *a
             sign_msg.box3.push_back(box.y1);
             sign_msg.box3.push_back(box.x2-box.x1);
             sign_msg.box3.push_back(box.y2-box.y1);
+        } else if (bb == 3) {
+            sign_msg.box4.push_back(box.x1);
+            sign_msg.box4.push_back(box.y1);
+            sign_msg.box4.push_back(box.x2-box.x1);
+            sign_msg.box4.push_back(box.y2-box.y1);
         }
         sign_msg.confidence.push_back(box.score);
         bb++;
