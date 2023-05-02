@@ -44,7 +44,7 @@ class track_map():
         self.map_graph=nx.read_edgelist(os.path.dirname(os.path.realpath(__file__))+'/templates/map.edgelist',create_using=nx.DiGraph())
         for i in range(len(self.map_graph.nodes)):
             self.map_graph.nodes[self.locations[i]]['coord']=self.locations_coord[i]
-        # self.map_graph=nx.read_graphml(os.path.dirname(os.path.realpath(__file__))+'/Competition_track.graphml')
+        # self.map_graph=nx.read_graphml(os.path.dirname(os.path.realpath(__file__))+'/templates/Competition_track.graphml')
 
         # get the current location
         self.location = self.locate(posX,posY,rot)
@@ -188,6 +188,7 @@ class track_map():
 
     def draw_map_graphml(self):
         # draw the path (graphml)
+        self.map_graph=nx.read_graphml(os.path.dirname(os.path.realpath(__file__))+'/templates/Competition_track.graphml')
         img_map=self.map
         # cv2.circle(img_map, (int(self.map_graph.nodes[self.location]['coord'][0]/15*self.map.shape[0]),int(self.map_graph.nodes[self.location]['coord'][1]/15*self.map.shape[1])), radius=20, color=(0,255,0), thickness=-1)
         # print(len(self.map_graph.nodes)-1)
@@ -208,7 +209,7 @@ class track_map():
             source = e[0]
             dest = e[1]
             img_map = cv2.arrowedLine(img_map, (int(self.map_graph.nodes[source]['x']/15*self.map.shape[0]),int(self.map_graph.nodes[source]['y']/15*self.map.shape[1])),
-                    ((int(self.map_graph.nodes[dest]['x']/15*self.map.shape[0]),int(self.map_graph.nodes[dest]['y']/15*self.map.shape[1]))), color=(255,0,255), thickness=10)
+                    ((int(self.map_graph.nodes[dest]['x']/15*self.map.shape[0]),int(self.map_graph.nodes[dest]['y']/15*self.map.shape[1]))), color=(255,0,255), thickness=5)
         windowName = 'track'
         cv2.namedWindow(windowName,cv2.WINDOW_NORMAL)
         cv2.resizeWindow(windowName,700,700)
@@ -577,6 +578,7 @@ if __name__ == '__main__':
     # node.get_location_dest('start')
     # node.make_map()
     # node.draw_map()
+    # node.custum_path()
     # node.custum_path(save=True)
     # node.plan_path()
     # node.draw_map_edgelist()
