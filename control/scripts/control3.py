@@ -49,6 +49,7 @@ class StateMachine():
                 self.track_map.custum_path()
             self.plan_path(custom_path, planned_path)
         else:
+            self._init_socket_semaphore()
             # serialNODE
             from messageconverter import MessageConverter
             import serial
@@ -256,8 +257,6 @@ class StateMachine():
         # self.t1 = time.time()
         self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
         self.localise_before_decision = False
-
-        self._init_socket_semaphore()
     
     def _init_socket_semaphore(self):
         # Communication parameters, create and bind socket
@@ -475,13 +474,13 @@ class StateMachine():
                     self._write(self.msg)
                 return 0
         elif self.state == 11: #parked
-            if self.decisionsI >= len(self.decisions):
-                self.idle()
-                self.idle()
-                self.idle()
-                rospy.signal_shutdown("Exit")
-                return 0
-            else:
+            # if self.decisionsI >= len(self.decisions):
+            #     self.idle()
+            #     self.idle()
+            #     self.idle()
+            #     rospy.signal_shutdown("Exit")
+            #     return 0
+            # else:
                 if self.timerP is None:
                     self.timerP = rospy.Time.now() + rospy.Duration(1.57) # stop before parking
                     print("prepare to exit")
@@ -1853,45 +1852,51 @@ class StateMachine():
         return self.object_detected(4)
     def is_green(self):
         self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
-        if self.orientation==1 or self.orientation==3: #N or S
-            # topic = 'start' #'anitmaster'
+        if self.simulation:
+            if self.orientation==1 or self.orientation==3: #N or S
+                topic = 'start' #'anitmaster'
+            else:
+                topic = 'master' #'slave'
             try:
-                data, addr = self.sock.recvfrom(4096) # buffer size is 1024 bytes
-                dat = data.decode('utf-8')
-                dat = json.loads(dat)
-                ID = int(dat['id'])
-                state = int(dat['state'])
-                if (ID == 1) or (ID == 2):
-                    return True if state == 2 else False
-                else:
-                    return True if state == 0 else False
-            except Exception as e:
-                if str(e) !="timed out":
-                    print("Receiving data failed with error: " + str(e))
-                    return False
+                self.idle()
+                state=rospy.wait_for_message('/automobile/trafficlight/'+topic,Byte,timeout=1)#0=red,1=yellow,2=green
+            except:
+                print("traffic light timed out")
+                return True
+            return True if state.data == 2 else False
         else:
-            # topic = 'master' #'slave'
-            try:
-                data, addr = self.sock.recvfrom(4096) # buffer size is 1024 bytes
-                dat = data.decode('utf-8')
-                dat = json.loads(dat)
-                ID = int(dat['id'])
-                state = int(dat['state'])
-                if (ID == 3) or (ID == 4):
-                    return True if state == 2 else False
-                else:
-                    return True if state == 0 else False
-            except Exception as e:
-                if str(e) !="timed out":
-                    print("Receiving data failed with error: " + str(e))
-                    return False
-        # try:
-        #     self.idle()
-        #     state=rospy.wait_for_message('/automobile/trafficlight/'+topic,Byte,timeout=1)#0=red,1=yellow,2=green
-        # except:
-        #     print("traffic light timed out")
-        #     return True
-        # return True if state.data == 2 else False
+            if self.orientation==1 or self.orientation==3: #N or S
+                # topic = 'start' #'anitmaster'
+                try:
+                    data, addr = self.sock.recvfrom(4096) # buffer size is 1024 bytes
+                    dat = data.decode('utf-8')
+                    dat = json.loads(dat)
+                    ID = int(dat['id'])
+                    state = int(dat['state'])
+                    if (ID == 1) or (ID == 2):
+                        return True if state == 2 else False
+                    else:
+                        return True if state == 0 else False
+                except Exception as e:
+                    if str(e) !="timed out":
+                        print("Receiving data failed with error: " + str(e))
+                        return False
+            else:
+                # topic = 'master' #'slave'
+                try:
+                    data, addr = self.sock.recvfrom(4096) # buffer size is 1024 bytes
+                    dat = data.decode('utf-8')
+                    dat = json.loads(dat)
+                    ID = int(dat['id'])
+                    state = int(dat['state'])
+                    if (ID == 3) or (ID == 4):
+                        return True if state == 2 else False
+                    else:
+                        return True if state == 0 else False
+                except Exception as e:
+                    if str(e) !="timed out":
+                        print("Receiving data failed with error: " + str(e))
+                        return False
     def crosswalk_sign_detected(self):
         return self.object_detected(5)
     def pedestrian_appears(self):
@@ -1981,9 +1986,9 @@ class StateMachine():
     def right_trajectory_sim(self, x):
         return -math.exp(3.75*x-3.33)
     def left_exit_trajectory_sim(self, x):
-        return math.exp(3*x-1.05)
+        return math.exp(3*x-0.75)
     def right_exit_trajectory_sim(self, x):
-        return -math.exp(3.75*x-3.03)
+        return -math.exp(3.75*x-2.53)
     def rdb_trajectory(self, x, t):
         u = 0.5-math.pow(x-0.71,2)
         u = np.clip(u,0,255)
