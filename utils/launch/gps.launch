@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="input" type="gpstrackerNODE.py"			name="gpstrackerNODE"  			output="screen"/>
+</launch>
