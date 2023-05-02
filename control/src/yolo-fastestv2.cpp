@@ -5,7 +5,7 @@
 //模型的参数配置
 yoloFastestv2::yoloFastestv2()
 {   
-    printf("Creat yoloFastestv2 Detector...\n");
+    printf("Create yoloFastestv2 Detector...\n");
     //输出节点数
     numOutput = 2;
     //推理线程数
@@ -31,7 +31,7 @@ yoloFastestv2::yoloFastestv2()
     printf("inputWidth:%d inputHeight:%d\n", inputWidth, inputHeight);
 
     //anchor box w h
-    std::vector<float> bias {21.82,34.65, 27.57,73.36, 41.74,49.52, 52.94,116.62, 90.77,60.51, 132.37,97.67};
+    std::vector<float> bias {17.40,26.18, 29.00,51.70, 45.06,110.96, 56.29,37.07, 95.01,64.90, 133.95,102.11};
 
     anchor.assign(bias.begin(), bias.end());
 }
