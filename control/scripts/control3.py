@@ -54,9 +54,7 @@ class StateMachine():
             from messageconverter import MessageConverter
             import serial
             devFile = '/dev/ttyACM0'
-            self.publish_cmd_vel = self.publish_cmd_vel_real
-            self.min_sizes = [25,25,40,50,45,35,30,25,25,150,75,72,125]
-            self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
+            
             # comm init
             self.serialCom = serial.Serial(devFile,19200,timeout=1)
             self.serialCom.flushInput()
@@ -65,6 +63,10 @@ class StateMachine():
             # message converted init
             self.messageConverter = MessageConverter()
             
+            self.publish_cmd_vel = self.publish_cmd_vel_real
+            self.min_sizes = [25,25,40,50,45,35,30,25,25,150,75,72,125]
+            self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
+
             # get initial yaw from IMU
             self.initialYaw = 0
             #launch sensors at 0 to remove this
