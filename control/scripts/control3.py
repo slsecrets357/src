@@ -68,6 +68,7 @@ class StateMachine():
             # get initial yaw from IMU
             self.initialYaw = 0
             #launch sensors at 0 to remove this
+            #or get the yaw offset from 0 after run
             while self.initialYaw==0:
                 imu = rospy.wait_for_message("/automobile/IMU",IMU)
                 self.initialYaw = imu.yaw
@@ -382,7 +383,6 @@ class StateMachine():
     def process_yaw_real(self, yaw):
         if yaw!=0:
             newYaw = -((yaw-self.initialYaw)*3.14159/180)
-            # newYaw = -((yaw)*3.14159/180)
             self.yaw = newYaw if newYaw>0 else (6.2831853+newYaw)
 
     #callback functions
@@ -1930,6 +1930,7 @@ class StateMachine():
     def parking_detected(self):
         return self.object_detected(4)
     def is_green(self):
+        #CHANGE
         return True
         self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
         if self.simulation:
