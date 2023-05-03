@@ -68,6 +68,7 @@ class StateMachine():
             # get initial yaw from IMU
             self.initialYaw = 0
             #launch sensors at 0 to remove this
+            #or get the yaw offset from 0 after run
             while self.initialYaw==0:
                 imu = rospy.wait_for_message("/automobile/IMU",IMU)
                 self.initialYaw = imu.yaw
@@ -85,17 +86,17 @@ class StateMachine():
             self.maxspeed = 0.15
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
             
-            # self.plan_path(custom_path, planned_path)
+            self.plan_path(custom_path, planned_path)
             
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
             #8:enterhwLeft, 9:enterhwStright, 10:rdb, 11:exitrdbE, 12:exitrdbS, 13:exitrdbW, 14:curvedpath
             # self.decisions = [2,3,6,0,4]
-            self.decisions = [3,5,1]
+            # self.decisions = [3,5,1]
             # self.decisions = [2,2,2,2,2,2,2,2,2]
             # self.decisions = [10,12]
-            self.decisionsI = 0
-            self.full_path = ['test','test','test','test','test','test','test','test','test','test','test','test','test']
-            self.planned_path = ['test1']
+            # self.decisionsI = 0
+            # self.full_path = ['test','test','test','test','test','test','test','test','test','test','test','test','test']
+            # self.planned_path = ['test1']
         #states
         self.states = ['Lane Following', "Approaching Intersection", "Stopping at Intersection", 
                        "Intersection Maneuvering", "Approaching Crosswalk", "Pedestrian", "Highway",
@@ -285,7 +286,10 @@ class StateMachine():
         print("x,y,yaw",self.x,self.y,self.yaw)
 
     def plan_path(self, custom_path, planned_path):
-        self.localise()
+        # self.localise()
+        self.x = 0
+        self.y = 15
+        self.yaw = np.pi/2
         if custom_path:
             self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
             self.track_map.plan_path()
@@ -822,7 +826,7 @@ class StateMachine():
             # print("x, y_error: ",x,abs(error))
             arrived = abs(self.yaw-self.destinationAngle) <= 0.15 or abs(self.yaw-self.destinationAngle) >= 6.13
             if self.intersectionDecision == 1:
-                arrived = arrived and abs(x)>=self.offsets_x[self.intersectionDecision] and abs(y-self.offsets_y[self.intersectionDecision]) < 0.2
+                arrived = arrived and abs(x)>=1 and abs(y-self.offsets_y[self.intersectionDecision]) < 0.2
             # if self.roadblock:
             #     arrived = arrived and error < 0.2
             # print("yaw_error: ")
@@ -1926,6 +1930,8 @@ class StateMachine():
     def parking_detected(self):
         return self.object_detected(4)
     def is_green(self):
+        #CHANGE
+        return True
         self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
         if self.simulation:
             if self.orientation==1 or self.orientation==3: #N or S
