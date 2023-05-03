@@ -79,12 +79,13 @@ class Odomtest():
         Initialize the lane follower node
         """
         rospy.init_node('lane_follower_node', anonymous=True)
+        self.timer = None
         self.timer4 = rospy.Time.now()
         self.timer5 = rospy.Time.now()
         self.timer6 = rospy.Time.now()
         self.odomTimer = rospy.Time.now()
         self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
-        self.rate = rospy.Rate(30)
+        self.rate = rospy.Rate(25)
         self.dt = 1/50 #for PID
 
         self.imu_sub = rospy.Subscriber("/automobile/IMU", IMU, self.imu_callback, queue_size=3)
@@ -110,10 +111,10 @@ class Odomtest():
         rospy.on_shutdown(shutdown)
 
         #enable encoder at the start to get messages from automobile/encoder
-        self.msg.data = '{"action":"5","activate": true}'
-        self._write(self.msg)
-        self._write(self.msg)
-        self._write(self.msg)
+        # self.msg.data = '{"action":"5","activate": true}'
+        # self._write(self.msg)
+        # self._write(self.msg)
+        # self._write(self.msg)
 
         self.timerP = None
 
@@ -136,11 +137,11 @@ class Odomtest():
             self.timer = rospy.Time.now() + rospy.Duration(2)
         if rospy.Time.now() <= self.timer:
             if self.toggle == 0:
-                self.toggle == 1
+                self.toggle = 1
                 self.msg.data = '{"action":"5","activate": true}'
                 self._write(self.msg)
             else:
-                self.toggle == 0
+                self.toggle = 0
                 self.msg.data = '{"action":"4","activate": true}'
                 self._write(self.msg)
             return
@@ -151,7 +152,9 @@ class Odomtest():
 
         # self.x = localization.posA
         # self.y = 15.0-localization.posB
-        if imu.yaw!=0:
+        if imu.yaw>0:
+            # print("IMU yaw: ", imu.yaw)
+
             yaw = -((imu.yaw-self.initialYaw)*3.14159/180)
             self.yaw = yaw if yaw>0 else (6.2831853+yaw)
         self.velocity = encoder.speed
@@ -166,9 +169,9 @@ class Odomtest():
         if abs(error) <= 0.05:
             # print("done adjusting angle.")
             self.idle()
-            return
         else:
             self.publish_cmd_vel(self.pid(error), self.maxspeed*0.7)
+        self.rate.sleep()
 
     def idle(self):
         # self.cmd_vel_pub(0.0, 0.0)
@@ -229,7 +232,11 @@ class Odomtest():
         else:
             self.toggle = 0
             self.msg.data = '{"action":"2","steerAngle":'+str(float("{:.2f}".format(steering_angle)))+'}'
+        self.msg.data = '{"action":"1","speed":'+str(float("{:.4f}".format(velocity)))+'}'
+        # print(self.msg)
+        self.msg2.data = '{"action":"2","steerAngle":'+str(float("{:.2f}".format(steering_angle)))+'}'
         self._write(self.msg)
+        self._write(self.msg2)
 
 if __name__ == '__main__':
     node = Odomtest()

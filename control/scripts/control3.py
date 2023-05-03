@@ -383,7 +383,7 @@ class StateMachine():
     def process_yaw_sim(self, yaw):
         self.yaw = yaw if yaw>0 else (6.2831853+yaw)
     def process_yaw_real(self, yaw):
-        if yaw!=0:
+        if yaw>0:
             newYaw = -((yaw-self.initialYaw)*3.14159/180)
             self.yaw = newYaw if newYaw>0 else (6.2831853+newYaw)
 
