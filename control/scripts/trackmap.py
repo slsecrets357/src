@@ -237,6 +237,7 @@ class track_map():
     def draw_map(self):
         # draw the path
         img_map=self.map
+        self.draw_error(1,1,img_map)
         cv2.circle(img_map, (int(self.map_graph.nodes[self.location]['coord'][0]/15*self.map.shape[0]),int(self.map_graph.nodes[self.location]['coord'][1]/15*self.map.shape[1])), radius=20, color=(0,255,0), thickness=-1)
         for i in range(len(self.map_graph.nodes)):
             cv2.putText(img_map, self.locations[i], (int(self.map_graph.nodes[self.locations[i]]['coord'][0]/15*self.map.shape[0]),int(self.map_graph.nodes[self.locations[i]]['coord'][1]/15*self.map.shape[1])), cv2.FONT_HERSHEY_SIMPLEX, 
@@ -249,6 +250,9 @@ class track_map():
         cv2.resizeWindow(windowName,700,700)
         cv2.imshow(windowName, img_map)
         key = cv2.waitKey(0)
+
+    def draw_error(self, x, y, image):
+        cv2.circle(image, (int(x/15*self.map.shape[0]),int(y/15*self.map.shape[1])), radius=int(0.2/15*self.map.shape[1]), color=(0,255,0), thickness=-1)
 
     def decision_point(self,x,y): # include yaw check as well
         loc = self.location_decision_points[self.locations.index(self.location)]
