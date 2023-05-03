@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 import rospy
 import numpy as np
-from message_filters import ApproximateTimeSynchronizer
 from std_msgs.msg import String
 from utils.msg import localisation, IMU, encoder
 # from pynput import keyboard
-import message_filters
 # import time
 import math
 import os
@@ -62,28 +60,8 @@ class Odomtest():
         self.maxspeed = 0.13
         self.last = 0
 
-        #timers
-        self.timer = None
-        self.timer2 = None
-        self.timer3 = None
-       
         self.toggle = 0
 
-        #intersection & parking
-        self.intersectionStop = None
-        self.intersectionDecision = -1 #0:left, 1:straight, 2:right
-        self.intersectionDecisions = ["left", "straight", "right"] #0:left, 1:straight, 2:right
-        self.parkingDecision = -1 
-        self.parkingDecisions = ["leftParking", "noParking","rightParking", "leftParallel", "rightParallel"] 
-        self.doneManeuvering = False
-        self.doneParking = False
-        self.destination_x = None
-        self.destination_y = None
-        self.destination_theta = None
-        self.initialPoints = None
-        self.intersectionState = 0
-        self.numIntersectionStates = 0
-        self.trajectory = None
         #constants
         self.orientation = 1 #0,1,2,3=east,north,west,south
         self.directions = ["east", "north", "west", "south"]
@@ -109,21 +87,8 @@ class Odomtest():
         self.rate = rospy.Rate(30)
         self.dt = 1/50 #for PID
 
-        # Create service proxy
-        # self.get_dir = rospy.ServiceProxy('get_direction',get_direction)
-
-        # Subscribe to topics
-        # self.localization_sub = message_filters.Subscriber("/automobile/localisation", localisation, queue_size=3)
-        self.imu_sub = message_filters.Subscriber("/automobile/IMU", IMU, queue_size=3)
-        self.encoder_sub = message_filters.Subscriber("/automobile/encoder", encoder, queue_size=3)
-        self.subscribers = []
-        # self.subscribers.append(self.localization_sub)
-        self.subscribers.append(self.imu_sub)
-        self.subscribers.append(self.encoder_sub)
-        
-        # Create an instance of TimeSynchronizer
-        ts = ApproximateTimeSynchronizer(self.subscribers, queue_size=3, slop=1.15)
-        ts.registerCallback(self.callback)
+        self.imu_sub = rospy.Subscriber("/automobile/IMU", IMU, self.imu_callback, queue_size=3)
+        self.encoder_sub = rospy.Subscriber("/automobile/encoder", encoder, self.encoder_callback, queue_size=3)
 
         # get initial yaw from IMU
         self.initialYaw = 0
@@ -134,7 +99,8 @@ class Odomtest():
 
         #stop at shutdown
         def shutdown():
-            ts.unregister()
+            self.imu_sub.unregister()
+            self.encoder_sub.unregister()
             msg = String()
             msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
             for haha in range(20):
@@ -145,10 +111,6 @@ class Odomtest():
 
         #enable encoder at the start to get messages from automobile/encoder
         self.msg.data = '{"action":"5","activate": true}'
-        self._write(self.msg)
-        self._write(self.msg)
-        self._write(self.msg)
-        self.msg.data = '{"action":"4","activate": true}'
         self._write(self.msg)
         self._write(self.msg)
         self._write(self.msg)
@@ -166,13 +128,21 @@ class Odomtest():
         # buffer_size = self.serialCom.out_waiting
         # print("Buffer size:", buffer_size)
     
-    #callback function
-    def callback(self,imu,encoder):
-
+    def encoder_callback(self,encoder):
+        self.velocity = encoder.speed
+    def imu_callback(self,imu):
         if self.timer == None:
             print("initializing...")
             self.timer = rospy.Time.now() + rospy.Duration(2)
         if rospy.Time.now() <= self.timer:
+            if self.toggle == 0:
+                self.toggle == 1
+                self.msg.data = '{"action":"5","activate": true}'
+                self._write(self.msg)
+            else:
+                self.toggle == 0
+                self.msg.data = '{"action":"4","activate": true}'
+                self._write(self.msg)
             return
 
         self.dt = (rospy.Time.now()-self.timer6).to_sec()
@@ -200,7 +170,6 @@ class Odomtest():
         else:
             self.publish_cmd_vel(self.pid(error), self.maxspeed*0.7)
 
-    
     def idle(self):
         # self.cmd_vel_pub(0.0, 0.0)
         self.msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
@@ -232,30 +201,6 @@ class Odomtest():
         self.odomX += magnitude * math.cos(self.yaw)
         self.odomY += magnitude * math.sin(self.yaw)
         # print(f"odometry: speed={self.velocity}, dt={dt}, mag={magnitude}, cos={math.cos(self.yaw)}, X={self.odomX}, Y={self.odomY}")
-    def left_trajectory(self, x):
-        return math.exp(3.57*x-4.3)
-    def straight_trajectory(self, x):
-        return 0
-    def right_trajectory(self, x):
-        return -math.exp(4*x-1.2)
-        # return -math.exp(3.75*x-3.33)
-    def leftpark_trajectory(self, x):
-        return math.exp(3.57*x-4.2) #real dimensions
-    def set_current_angle(self):
-        self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
-        self.currentAngle = self.orientations[self.orientation]
-        if self.intersectionDecision == 0 or self.parkingDecision == 0: #left
-            self.destinationOrientation = self.directions[(self.orientation+1)%4]
-            self.destinationAngle = self.orientations[(self.orientation+1)%4]
-            return
-        elif self.intersectionDecision == 1: #straight
-            self.destinationOrientation = self.orientation
-            self.destinationAngle = self.currentAngle
-            return
-        elif self.intersectionDecision == 2 or self.parkingDecision == 2: #right
-            self.destinationOrientation = self.directions[(self.orientation-1)%4]
-            self.destinationAngle = self.orientations[(self.orientation-1)%4]
-            return
     def get_steering_angle(self):
         """
         Determine the steering angle based on the lane center
@@ -277,11 +222,14 @@ class Odomtest():
         if velocity is None:
             velocity = self.maxspeed
         if clip:
-            steering_angle = np.clip(steering_angle, -0.4, 0.4)
-        self.msg.data = '{"action":"1","speed":'+str(velocity)+'}'
-        self.msg2.data = '{"action":"2","steerAngle":'+str(steering_angle*180/np.pi)+'}'
+            steering_angle = np.clip(steering_angle*180/np.pi, -22.9, 22.9)
+        if self.toggle == 0:
+            self.toggle = 1
+            self.msg.data = '{"action":"1","speed":'+str(float("{:.4f}".format(velocity)))+'}'
+        else:
+            self.toggle = 0
+            self.msg.data = '{"action":"2","steerAngle":'+str(float("{:.2f}".format(steering_angle)))+'}'
         self._write(self.msg)
-        self._write(self.msg2)
 
 if __name__ == '__main__':
     node = Odomtest()
