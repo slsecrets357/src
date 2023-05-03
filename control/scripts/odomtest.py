@@ -148,6 +148,10 @@ class Odomtest():
         self._write(self.msg)
         self._write(self.msg)
         self._write(self.msg)
+        self.msg.data = '{"action":"4","activate": true}'
+        self._write(self.msg)
+        self._write(self.msg)
+        self._write(self.msg)
 
         self.timerP = None
 

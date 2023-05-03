@@ -800,7 +800,7 @@ class StateMachine():
             self.odomX, self.odomY = 0.0, 0.0 #reset x,y
             self.timerodom = rospy.Time.now()
             self.intersectionState = 0 #adjusting angle:0, trajectory following:1, adjusting angle2: 2..
-            self.adjustYawError = 0.2 if self.intersectionDecision!=1 else 0.05
+            self.adjustYawError = 0.2 if self.intersectionDecision!=1 else 0.03
         self.odometry()
         poses = np.array([self.odomX,self.odomY])
         poses = poses.dot(self.rotation_matrices[self.orientation])
