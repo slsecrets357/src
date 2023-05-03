@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="input" type="imuNODE.py" 				name="imuNODE"  				output="screen"/>
+    <node pkg="input" type="encoderNODE.py" 		    name="encodeNODE"  				output="screen"/>
+</launch>
