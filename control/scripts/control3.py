@@ -1028,7 +1028,9 @@ class StateMachine():
             self.odomX, self.odomY = 0.0, 0.0 #reset x,y
             self.timerodom = rospy.Time.now()
             self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
-            self.localise()
+            # self.localise()
+            self.x = 0
+            self.y = 0
             if self.x > 11 and self.y < 4:
                 print("inside curved region")
                 print(self.full_path[self.decisionsI])
