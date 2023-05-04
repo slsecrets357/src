@@ -446,7 +446,7 @@ class StateMachine():
             return self.highway()
         elif self.state == 7: #overtake
             if self.history == 6:
-                return self.overtake()
+                return self.highway_overtake()
             else:
                 return self.lane_overtake()
         elif self.state == 8: #Roundabout
@@ -562,9 +562,9 @@ class StateMachine():
                 self.idle()
                 return 0
             else:
-                self.publish_cmd_vel(0,0)
+                self.idle()
                 return 0
-        if self.timer2 is not None and rospy.Time.now() >= self.timer2 and self.highwaySide == -1:
+        if self.timer2 is not None and rospy.Time.now() >= self.timer2:
             #go back to right side
             print("timer2 expired & no car in sight. going back to right side")
             self.timerO = None
@@ -1104,7 +1104,7 @@ class StateMachine():
             self.publish_cmd_vel(0, self.maxspeed)
         return 0
     
-    def overtake(self):
+    def highway_overtake(self):
         #/entry: checkDotted
         #action: overtake or wait
         if self.pedestrian_appears():
@@ -2064,11 +2064,11 @@ class StateMachine():
     def left_trajectory_real(self, x):
         return math.exp(3.57*x-4.3)
     def right_trajectory_real(self, x):
-        return -math.exp(4*x-2.85)
+        return -math.exp(4*x-3.05)
     def left_exit_trajectory_real(self, x):
         return math.exp(4*x+2)
     def right_exit_trajectory_real(self, x):
-        return -math.exp(4*x-3.05)
+        return -math.exp(4*x-2.65)
     def leftpark_trajectory(self, x):
         return math.exp(3.57*x-4.2) #real dimensions
     def left_trajectory_sim(self, x):
