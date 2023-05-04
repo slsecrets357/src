@@ -290,7 +290,7 @@ class StateMachine():
     def plan_path(self, custom_path, planned_path):
         # self.localise()
         self.x = 0
-        self.y = 15
+        self.y = 3
         self.yaw = np.pi/2
         if custom_path:
             self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
