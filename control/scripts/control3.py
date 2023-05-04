@@ -289,9 +289,6 @@ class StateMachine():
 
     def plan_path(self, custom_path, planned_path):
         # self.localise()
-        self.x = 0
-        self.y = 3
-        self.yaw = np.pi/2
         if custom_path:
             self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
             self.track_map.plan_path()
@@ -299,6 +296,9 @@ class StateMachine():
         else:
             self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
             self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
+            # REMOVE WHEN LOCALISATION WORK
+            self.track_map.location = self.planned_path[0]
+
             self.track_map.plan_path()
         if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
             self.hw = True
