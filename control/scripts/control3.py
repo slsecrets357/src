@@ -25,6 +25,10 @@ class StateMachine():
         self.rate = rospy.Rate(25)
         self.dt = 1/25 #for PID
 
+        self.localise_before_decision = localisation
+        if localisation:
+            print("localisation on")
+
         #simulation
         self.simulation = simulation
         if self.simulation:
@@ -88,6 +92,9 @@ class StateMachine():
             self.maxspeed = 0.15
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
             
+            self.x = 0.82
+            self.y = 14.91
+            self.yaw = 1.5707
             self.plan_path(custom_path, planned_path)
             
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
@@ -261,9 +268,6 @@ class StateMachine():
         self.toggle = 0
         # self.t1 = time.time()
         self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
-        self.localise_before_decision = localisation
-        if localisation:
-            print("localisation on")
     
     def _init_socket_semaphore(self):
         # Communication parameters, create and bind socket
