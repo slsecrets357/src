@@ -119,6 +119,7 @@ class StateMachine():
         self.laneOvertakeAngle = np.pi*0.175
         self.laneOvertakeCD = 2
         self.overtakeDuration = 1
+        # self.overtake = False
         self.roadblock = True
 
         #sign
@@ -1022,12 +1023,13 @@ class StateMachine():
             self.history = None
             self.initialPoints = None #reset initial points
             self.timerP = None
-            if not self.overtake:
+            if not self.roadblock:
                 self.highwaySide *= -1 
                 if self.highwaySide == -1:
                     self.timer2 = rospy.Time.now() + rospy.Duration(self.laneOvertakeCD) #tune this
                     print("cooldown is ", self.laneOvertakeCD)
-            self.overtake = False
+            # self.overtake = False
+            self.roadblock = False
             self.pl = 320
             self.overtakeAngle = np.pi/5
             self.laneOvertakeAngle = np.pi*0.175
@@ -1061,9 +1063,9 @@ class StateMachine():
                     self.laneOvertakeCD = 4
                     print("overtake angle is ", self.laneOvertakeAngle)
             else: 
-                self.overtakeDuration = 1
+                self.overtakeDuration = 0.5 if (self.highwaySide == 1 and not self.roadblock) else 0.75
                 self.laneOvertakeCD = 2
-                self.laneOvertakeAngle = np.pi*0.175
+                self.laneOvertakeAngle = np.pi*0.175 if (self.highwaySide == 1 and not self.roadblock) else np.pi*0.182
         if self.intersectionState==0: #adjusting
             error = self.yaw - (self.overtaking_angle)
             if error>np.pi:
