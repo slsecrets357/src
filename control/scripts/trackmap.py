@@ -107,6 +107,19 @@ class track_map():
         # with open('/home/antoinedeng/Documents/Simulator/src/control/scripts/directed_path.json', 'w') as outfile:
         #     json.dump(directed_path, outfile)
 
+    def closest_node(self, node, list):
+        closest_distance = float('inf')
+        for node in list:
+            # find the shortest path from the specific node to this node
+            # path = nx.shortest_path(self.map_graph, node, node, weight='weight')
+            distance = nx.shortest_path_length(self.map_graph, node, node, weight='weight')
+            
+            # update the closest node and distance if this node is closer
+            if distance < closest_distance:
+                closest_node = node
+                closest_distance = distance
+        return closest_node
+
     def get_location_dest(self,loc):
         dirs = []
         # print(self.map_graph.out_edges(loc,data=True))
@@ -579,6 +592,7 @@ if __name__ == '__main__':
     m = json.load(open(os.path.dirname(os.path.realpath(__file__))+'/paths/path.json', 'r'))
     # print(m)
     node = track_map(0,15,1.5,m)
+    print(node.closest_node("start",["int4N","int4W","int5N","int5N","int5W","track1N","parkingN","track2N","roundabout","highwayS"]))
     # node.get_location_dest('start')
     # node.make_map()
     # node.draw_map()

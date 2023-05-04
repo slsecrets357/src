@@ -29,6 +29,7 @@ class StateMachine():
         if localisation:
             print("localisation on")
         self.msg = String()
+        self.history = None
 
         #simulation
         self.simulation = simulation
@@ -36,6 +37,8 @@ class StateMachine():
             print("Simulation mode")
             self.publish_cmd_vel = self.publish_cmd_vel_sim
             self.cmd_vel_pub = rospy.Publisher("/automobile/command", String, queue_size=3)
+            self.class_names = ['oneway', 'highwayentrance', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayexit', 'priority',
+                'lights','block','pedestrian','car','others','nothing']
             self.min_sizes = [25,25,40,50,45,35,30,25,25,130,75,72,125]
             self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,320]
             self.odomRatio = 1
@@ -69,6 +72,8 @@ class StateMachine():
             self.messageConverter = MessageConverter()
             
             self.publish_cmd_vel = self.publish_cmd_vel_real
+            self.class_names = ['oneway', 'highwayentrance', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayexit', 'priority',
+                'lights','block','pedestrian','car','others','nothing']
             self.min_sizes = [25,25,40,50,45,35,30,25,25,150,75,72,125]
             self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
 
@@ -93,9 +98,9 @@ class StateMachine():
             self.maxspeed = 0.15
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
             
-            self.x = 0.82
-            self.y = 14.91
-            self.yaw = 1.5707
+            # self.x = 0.82
+            # self.y = 14.91
+            # self.yaw = 1.5707
             self.plan_path(custom_path, planned_path)
             
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
@@ -112,7 +117,8 @@ class StateMachine():
                        "Intersection Maneuvering", "Approaching Crosswalk", "Pedestrian", "Highway",
                        "overtaking", "Roundabout", "Parking", "Initial", "Parked", "Curvedpath"] #13 states
         self.state = 10 #initial
-        self.history = 0
+        if self.history is None:
+            self.history = 0
         self.highwaySpeed = self.maxspeed*1.33
         self.highwayRight = True
         self.highwaySide = 1 #1:right, -1:left
@@ -120,11 +126,10 @@ class StateMachine():
         self.laneOvertakeCD = 2
         self.overtakeDuration = 1
         # self.overtake = False
-        self.roadblock = True
 
         #sign
-        self.class_names = ['oneway', 'highwayentrance', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayexit', 'priority',
-                'lights','block','pedestrian','car','others','nothing']
+        # self.class_names = ['oneway', 'highwayentrance', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayexit', 'priority',
+        #         'lights','block','pedestrian','car','others','nothing']
         # self.min_sizes = [25,25,40,50,40,35,30,25,25,130,75,72,130]
         # self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
         self.center = -1
@@ -307,6 +312,11 @@ class StateMachine():
             self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
             if not self.localise_before_decision:
                 self.track_map.location = self.planned_path[0]
+                # self.track_map.location = "" # SET THIS DURING COMPETITION
+                # closest = str(self.track_map.closest_node(self.track_map.location,self.planned_path))
+                # index = self.planned_path.index(closest)
+                # new_path = self.planned_path[index:] + self.planned_path[:index]
+                # self.planned_path = new_path
             self.track_map.plan_path()
         if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
             self.hw = True
@@ -341,7 +351,8 @@ class StateMachine():
         print("Full path: ", self.full_path)
     
     def plan_new_path(self):
-        self.localise()
+        if self.localise_before_decision:
+            self.localise()
         self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
         self.track_map.planned_path = self.planned_path
         self.track_map.plan_path()
@@ -539,65 +550,67 @@ class StateMachine():
             self.state = 5
             self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
             return 1
-        car_sizes =  self.get_car_size(minSize = 100)
-        num = len(car_sizes)
-        rightCar = False
-        for box in car_sizes:
-            if box[0] + box[2]/2 > 144:
-                rightCar = True
-                break
-        if num > 0 and rightCar and rospy.Time.now() > self.exitCD:
-            if self.timerO is None:
-                print("car detected, waiting for 2s to ascertain car's speed")
-                self.timerO = rospy.Time.now() + rospy.Duration(2)
-                self.highwaySide = 1
-                self.numCars, self.firstDetectionSizes = num, car_sizes
-            if rospy.Time.now() >= self.timerO:
-                if num < 2:
-                    print("only one car, overtake, side is ", self.highwaySide) 
+        elif not self.cp:
+            car_sizes = self.get_car_size(minSize = 100)
+            num = len(car_sizes)
+            rightCar = False
+            for box in car_sizes:
+                if box[0] + box[2]/2 > 144:
+                    rightCar = True
+                    break
+            if num > 0 and rightCar and rospy.Time.now() > self.exitCD:
+                if self.timerO is None:
+                    print("car detected, waiting for 2s to ascertain car's speed")
+                    self.timerO = rospy.Time.now() + rospy.Duration(2)
+                    if self.timer2 is None:
+                        self.highwaySide = 1
+                    self.numCars, self.firstDetectionSizes = num, car_sizes
+                if rospy.Time.now() >= self.timerO:
+                    if num < 2:
+                        print("only one car, overtake, side is ", self.highwaySide) 
+                        self.timerO = None
+                        self.history = self.state
+                        self.overtakeAngle = np.pi*0.3
+                        self.state = 7 #overtake
+                        return 1
+                    self.idle()
+                    return 0
+                else:
+                    self.idle()
+                    return 0
+            if self.timer2 is not None and rospy.Time.now() >= self.timer2:
+                #go back to right side
+                print("timer2 expired & no car in sight. going back to right side")
+                self.timerO = None
+                self.timer2 = None
+                self.history = self.state
+                self.overtakeAngle = np.pi*0.2
+                self.state = 7 #switch lane
+                return 1
+            
+            roadblock_sizes =  self.get_obj_size(obj_id = 10)
+            num = len(roadblock_sizes)
+            rightBlock = False
+            for box in roadblock_sizes:
+                if box[0] + box[2]/2 > 144:
+                    rightBlock = True
+                    break
+            if num > 0 and rightBlock:
+                if self.timerO is None:
+                    print("roadblock detected, waiting for 2s to ascertain position")
+                    self.timerO = rospy.Time.now() + rospy.Duration(2)
+                    self.highwaySide = 1
+                if rospy.Time.now() >= self.timerO and num < 2:
+                    print("overtake roadblock!") 
                     self.timerO = None
                     self.history = self.state
                     self.overtakeAngle = np.pi*0.3
+                    self.roadblock = True
                     self.state = 7 #overtake
                     return 1
-                self.idle()
-                return 0
-            else:
-                self.idle()
-                return 0
-        if self.timer2 is not None and rospy.Time.now() >= self.timer2:
-            #go back to right side
-            print("timer2 expired & no car in sight. going back to right side")
-            self.timerO = None
-            self.timer2 = None
-            self.history = self.state
-            self.overtakeAngle = np.pi*0.2
-            self.state = 7 #switch lane
-            return 1
-        
-        roadblock_sizes =  self.get_obj_size(obj_id = 10)
-        num = len(roadblock_sizes)
-        rightBlock = False
-        for box in roadblock_sizes:
-            if box[0] + box[2]/2 > 144:
-                rightBlock = True
-                break
-        if num > 0 and rightBlock:
-            if self.timerO is None:
-                print("roadblock detected, waiting for 2s to ascertain position")
-                self.timerO = rospy.Time.now() + rospy.Duration(2)
-                self.highwaySide = 1
-            if rospy.Time.now() >= self.timerO and num < 2:
-                print("overtake roadblock!") 
-                self.timerO = None
-                self.history = self.state
-                self.overtakeAngle = np.pi*0.3
-                self.roadblock = True
-                self.state = 7 #overtake
-                return 1
-            else:
-                self.publish_cmd_vel(0,0)
-                return 0
+                else:
+                    self.publish_cmd_vel(0,0)
+                    return 0
         elif self.parking_detected():
             # if not at parking decision yet pass
             if self.decisionsI >= len(self.decisions):
@@ -774,8 +787,8 @@ class StateMachine():
             self.intersectionDecision = self.decisions[self.decisionsI] #replace this with service call
             self.decisionsI+=1
             # print(self.full_path[self.decisionsI],self.planned_path[0])
-            if self.full_path[self.decisionsI] == self.planned_path[0]: #this is assuming that the destination of the maneuver is reached
-                self.planned_path.pop(0)
+            # if self.full_path[self.decisionsI] == self.planned_path[0]: #this is assuming that the destination of the maneuver is reached
+            #     self.planned_path.pop(0)
             if self.intersectionDecision == 8:
                 self.intersectionDecision = 0
                 self.hw = True
@@ -796,8 +809,11 @@ class StateMachine():
                 if self.cp:
                     self.cp = False
             else:
-                self.plan_new_path()
+                # self.plan_new_path()
+                self.decisionsI -= 1
+                self.doneManeuvering = True
                 print("self.intersectionDecision id wrong: ",self.intersectionDecision)
+                return 0
             print("intersection decision: going " + self.decisionList[self.intersectionDecision])
         if self.initialPoints is None:
             self.set_current_angle()
@@ -1024,7 +1040,7 @@ class StateMachine():
             self.initialPoints = None #reset initial points
             self.timerP = None
             if not self.roadblock:
-                self.highwaySide *= -1 
+                self.highwaySide *= -1
                 if self.highwaySide == -1:
                     self.timer2 = rospy.Time.now() + rospy.Duration(self.laneOvertakeCD) #tune this
                     print("cooldown is ", self.laneOvertakeCD)
@@ -1035,22 +1051,21 @@ class StateMachine():
             self.laneOvertakeAngle = np.pi*0.175
             return 1
         if self.initialPoints is None:
-            self.overtaking_angle = self.yaw 
             self.initialPoints = np.array([self.x, self.y])
             # print("initialPoints points: ", self.initialPoints)
-            self.offset = 0
+            # self.offset = 0
             # print("begin going straight for "+str(self.offset)+"m")
-            self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-            self.timerodom = rospy.Time.now()
+            # self.odomX, self.odomY = 0.0, 0.0 #reset x,y
+            # self.timerodom = rospy.Time.now()
             self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
             # self.localise()
-            self.x = 0
-            self.y = 0
-            if self.x > 11 and self.y < 4:
+            check_curve = (self.full_path[self.decisionsI] == "track2N" or self.full_path[self.decisionsI] == "track2S")
+            if check_curve and abs(self.center-320-20)>30:
+                self.overtaking_angle = self.yaw
                 print("inside curved region")
-                print(self.full_path[self.decisionsI])
-                p = self.full_path[self.decisionsI]
-                if p == "track2N" or p == "roundabout" or p == "highwayS" or p == "curvedpath":
+                print(self.full_path[self.decisionsI+1])
+                p = self.full_path[self.decisionsI+1]
+                if p == "roundabout": #or p == "track2N" or p == "highwayS" or p == "curvedpath":
                     print("on inner side")
                     self.overtakeDuration = 1
                     self.laneOvertakeAngle = 0.06*np.pi if self.highwaySide == 1 else 0.357*np.pi
@@ -1062,7 +1077,9 @@ class StateMachine():
                     self.laneOvertakeAngle = 0.24*np.pi if self.highwaySide == 1 else 0.1*np.pi
                     self.laneOvertakeCD = 4
                     print("overtake angle is ", self.laneOvertakeAngle)
-            else: 
+            else:
+                self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
+                self.overtaking_angle = self.orientations[self.orientation]
                 self.overtakeDuration = 0.5 if (self.highwaySide == 1 and not self.roadblock) else 0.75
                 self.laneOvertakeCD = 2
                 self.laneOvertakeAngle = np.pi*0.175 if (self.highwaySide == 1 and not self.roadblock) else np.pi*0.182
@@ -1238,8 +1255,8 @@ class StateMachine():
             self.rdbDecision = self.decisions[self.decisionsI] #replace this with service call
             self.decisionsI+=1
             # print(self.full_path[self.decisionsI],self.planned_path[0])
-            if self.full_path[self.decisionsI] == self.planned_path[0]: #this is assuming that the destination of the maneuver is reached
-                self.planned_path.pop(0)
+            # if self.full_path[self.decisionsI] == self.planned_path[0]: #this is assuming that the destination of the maneuver is reached
+            #     self.planned_path.pop(0)
             #could place them in set_current_angle()
             if self.rdbDecision == 11: #E
                 self.rdbExitYaw = np.pi/4 #change this depending on implementation
@@ -1248,8 +1265,11 @@ class StateMachine():
             elif self.rdbDecision == 13: #W
                 self.rdbExitYaw = 5*np.pi/4 #change this depending on implementation
             else:
-                self.plan_new_path()
+                # self.plan_new_path()
+                self.decisionsI -= 1
+                self.doneManeuvering = True
                 print("self.rdbDecision id wrong: ",self.rdbDecision)
+                return 0
             print("roundabout decision: going " + self.decisionList[self.rdbDecision])
             self.trajectory = self.rdb_trajectory
         if self.initialPoints is None:
@@ -1358,14 +1378,16 @@ class StateMachine():
             self.parkingDecision = self.decisions[self.decisionsI] #replace this with service call
             self.decisionsI+=1
             # print(self.full_path[self.decisionsI],self.planned_path[0])
-            if self.full_path[self.decisionsI] == self.planned_path[0]: #this is assuming that the destination of the maneuver is reached
-                self.planned_path.pop(0)
+            # if self.full_path[self.decisionsI] == self.planned_path[0]: #this is assuming that the destination of the maneuver is reached
+            #     self.planned_path.pop(0)
             if self.parkingDecision == 3: #front parking
                 self.trajectory = self.right_trajectory
             elif self.parkingDecision == 4: #parallel parking
                 pass
             else:
-                self.plan_new_path()
+                # self.plan_new_path()
+                self.decisionsI -= 1
+                self.doneManeuvering = True
                 print("self.parkingDecision id wrong: ",self.parkingDecision)
             print("parking decision: going " + self.decisionList[self.parkingDecision])
         if self.parkingDecision == 4: #parallel
@@ -1736,8 +1758,8 @@ class StateMachine():
             self.exitDecision = self.decisions[self.decisionsI] #replace this with service call
             self.decisionsI+=1
             # print(self.full_path[self.decisionsI],self.planned_path[0])
-            if self.full_path[self.decisionsI] == self.planned_path[0]: #this is assuming that the destination of the maneuver is reached
-                self.planned_path.pop(0)
+            # if self.full_path[self.decisionsI] == self.planned_path[0]: #this is assuming that the destination of the maneuver is reached
+            #     self.planned_path.pop(0)
             print("exit decision: going ") #+ self.exitDecisions[self.exitDecision])
             if self.exitDecision == 5: #left exit
                 self.trajectory = self.left_exit_trajectory
@@ -1746,8 +1768,11 @@ class StateMachine():
             elif self.exitDecision == 7: #parallel exit
                 pass
             else:
-                self.plan_new_path()
+                # self.plan_new_path()
+                self.decisionsI -= 1
+                self.doneManeuvering = True
                 print("self.exitDecision id wrong: ",self.exitDecision)
+                return 0
             print("exit decision: going " + self.decisionList[self.exitDecision])
         if self.exitDecision != 7:
             if self.initialPoints is None:
@@ -1887,13 +1912,16 @@ class StateMachine():
             self.intersectionDecision = self.decisions[self.decisionsI] #replace this with service call
             self.decisionsI+=1
             # print(self.full_path[self.decisionsI],self.planned_path[0])
-            if self.full_path[self.decisionsI] == self.planned_path[0]: #this is assuming that the destination of the maneuver is reached
-                self.planned_path.pop(0)
+            # if self.full_path[self.decisionsI] == self.planned_path[0]: #this is assuming that the destination of the maneuver is reached
+            #     self.planned_path.pop(0)
             if self.intersectionDecision == 14:
                 pass
             else:
                 self.plan_new_path()
+                self.decisionsI -= 1
+                self.doneManeuvering = True
                 print("self.intersectionDecision id wrong: ",self.intersectionDecision)
+                return 0
             print("highway decision: going " + self.decisionList[self.intersectionDecision])
         if self.initialPoints is None:
             self.set_current_angle()
