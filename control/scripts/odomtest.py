@@ -182,18 +182,26 @@ class Odomtest():
             yaw = -((imu.yaw-self.initialYaw)*3.14159/180)
             self.yaw = yaw if yaw>0 else (6.2831853+yaw)
         # print("x,y,yaw,velocity: ", self.x, self.y, self.yaw, self.velocity)
-        self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
-        # self.orientation = 0
-        self.currentAngle = self.orientations[self.orientation]
-        error = self.yaw-self.currentAngle
-        if self.yaw>=5.73: #subtract 2pi to get error between -pi and pi
-            error-=6.28
-        # print("yaw, goal, error: ", self.yaw, self.currentAngle, error)
-        if abs(error) <= 0.05:
-            # print("done adjusting angle.")
+        
+        # self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
+        # # self.orientation = 0
+        # self.currentAngle = self.orientations[self.orientation]
+        # error = self.yaw-self.currentAngle
+        # if self.yaw>=5.73: #subtract 2pi to get error between -pi and pi
+        #     error-=6.28
+        # # print("yaw, goal, error: ", self.yaw, self.currentAngle, error)
+        # if abs(error) <= 0.05:
+        #     # print("done adjusting angle.")
+        #     self.idle()
+        # else:
+        #     self.publish_cmd_vel(self.pid(error), self.maxspeed*0.7)
+        
+        if self.maneuverInt() == 1:
             self.idle()
-        else:
-            self.publish_cmd_vel(self.pid(error), self.maxspeed*0.7)
+            self.idle()
+            self.idle()
+            rospy.signal_shutdown("Exit")
+        
         self.rate.sleep()
 
     def maneuverInt(self):
@@ -201,19 +209,6 @@ class Odomtest():
             print("done intersection maneuvering.")
             self.doneManeuvering = False #reset
             self.intersectionDecision = -1 #reset
-            if self.hw:
-                print("entering highway -> 6")
-                self.state = 6
-            elif self.cp:
-                self.state = 8
-            else:
-                self.state = 0 #go back to lane following
-            self.hw = False
-            self.cp = False
-            if self.roadblock:
-                self.roadblock = False
-                self.kd2 = 1
-                print("done new path after roadblock")
             self.initialPoints = None #reset initial points
             self.pl = 320
             self.adjustYawError = 0.2
