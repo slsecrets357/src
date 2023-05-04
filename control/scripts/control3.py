@@ -303,6 +303,10 @@ class StateMachine():
     def plan_path(self, custom_path, planned_path):
         if self.localise_before_decision:
             self.localise()
+        else:
+            self.x = 0
+            self.y = 0
+            self.yaw = 0
         if custom_path:
             self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
             self.track_map.plan_path()
@@ -1080,9 +1084,9 @@ class StateMachine():
             else:
                 self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
                 self.overtaking_angle = self.orientations[self.orientation]
-                self.overtakeDuration = 0.5 if (self.highwaySide == 1 and not self.roadblock) else 0.75
+                self.overtakeDuration = 0.45 if (self.highwaySide == 1 and not self.roadblock) else 0.4
                 self.laneOvertakeCD = 2
-                self.laneOvertakeAngle = np.pi*0.175 if (self.highwaySide == 1 and not self.roadblock) else np.pi*0.182
+                self.laneOvertakeAngle = np.pi*0.175 if (self.highwaySide == 1 and not self.roadblock) else np.pi*0.17
         if self.intersectionState==0: #adjusting
             error = self.yaw - (self.overtaking_angle)
             if error>np.pi:
