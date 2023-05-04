@@ -20,10 +20,15 @@ from trackmap import track_map
 
 class StateMachine():
     #initialization
-    def __init__(self, simulation = False, planned_path = "/paths/path.json", custom_path = False):
+    def __init__(self, simulation = False, planned_path = "/paths/path.json", custom_path = False, localisation = False):
         rospy.init_node('control_node', anonymous=True)
         self.rate = rospy.Rate(25)
         self.dt = 1/25 #for PID
+
+        self.localise_before_decision = localisation
+        if localisation:
+            print("localisation on")
+        self.msg = String()
 
         #simulation
         self.simulation = simulation
@@ -88,6 +93,9 @@ class StateMachine():
             self.maxspeed = 0.15
             file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
             
+            self.x = 0.82
+            self.y = 14.91
+            self.yaw = 1.5707
             self.plan_path(custom_path, planned_path)
             
             #0:left, 1:straight, 2:right, 3:parkF, 4:parkP, 5:exitparkL, 6:exitparkR, 7:exitparkP
@@ -261,7 +269,6 @@ class StateMachine():
         self.toggle = 0
         # self.t1 = time.time()
         self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
-        self.localise_before_decision = False
     
     def _init_socket_semaphore(self):
         # Communication parameters, create and bind socket
@@ -288,10 +295,8 @@ class StateMachine():
         print("x,y,yaw",self.x,self.y,self.yaw)
 
     def plan_path(self, custom_path, planned_path):
-        # self.localise()
-        self.x = 0
-        self.y = 15
-        self.yaw = np.pi/2
+        if self.localise_before_decision:
+            self.localise()
         if custom_path:
             self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
             self.track_map.plan_path()
@@ -299,6 +304,8 @@ class StateMachine():
         else:
             self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
             self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
+            if not self.localise_before_decision:
+                self.track_map.location = self.planned_path[0]
             self.track_map.plan_path()
         if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
             self.hw = True
@@ -1933,7 +1940,7 @@ class StateMachine():
         return self.object_detected(4)
     def is_green(self):
         #CHANGE
-        return True
+        # return True
         self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
         if self.simulation:
             if self.orientation==1 or self.orientation==3: #N or S
@@ -1963,7 +1970,7 @@ class StateMachine():
                 except Exception as e:
                     if str(e) !="timed out":
                         print("Receiving data failed with error: " + str(e))
-                        return False
+                        return True
             else:
                 # topic = 'master' #'slave'
                 try:
@@ -1979,7 +1986,7 @@ class StateMachine():
                 except Exception as e:
                     if str(e) !="timed out":
                         print("Receiving data failed with error: " + str(e))
-                        return False
+                        return True
     def crosswalk_sign_detected(self):
         return self.object_detected(5)
     def pedestrian_appears(self):
@@ -2191,9 +2198,11 @@ if __name__ == '__main__':
     parser.add_argument("--simulation", type=str, default=True, help="Run the robot in simulation or real life")
     parser.add_argument("--path", type=str, default="/paths/path.json", help="Planned path")
     parser.add_argument("--custom", type=str, default=False, help="Custom path")
+    parser.add_argument("--localisation", type=str, default=False, help="localisation enabled")
     # args, unknown = parser.parse_known_args()
     args = parser.parse_args(rospy.myargv()[1:])
     s = args.simulation=="True"
     c = args.custom=="True"
-    node = StateMachine(simulation=s,planned_path=args.path,custom_path=c)
+    l = args.localisation=="True"
+    node = StateMachine(simulation=s,planned_path=args.path,custom_path=c,localisation=l)
     rospy.spin()

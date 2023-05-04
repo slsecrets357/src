@@ -32,7 +32,7 @@ from multiprocessing import Pipe
 from locsys import LocalisationSystem
 
 import time
-
+import os
 import rospy
 
 from utils.msg import localisation
@@ -41,8 +41,8 @@ class gpstrackerNODE():
     
     def __init__(self):
         beacon = 12345
-        id = 1
-        serverpublickey = 'publickey_server_test.pem'
+        id = 5
+        serverpublickey = os.path.dirname(os.path.realpath(__file__))+'/publickey_server.pem'
         
         self.gpsStR, gpsStS = Pipe(duplex = False)
         self.LocalisationSystem = LocalisationSystem(id, beacon, serverpublickey, gpsStS)

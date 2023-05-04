@@ -33,7 +33,7 @@ sys.path.insert(0,'.')
 
 import socket
 
-from utils import load_public_key, verify_data
+from util import load_public_key, verify_data
 
 class ServerSubscriber:
 	""" It has role to subscribe on the server, to create a connection and verify the server authentication.
@@ -90,14 +90,17 @@ class ServerSubscriber:
 			
 			if  msg != 'gpsId not ok':
 				devicedata = msg.split(":")
-				sockDev = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-				sockDev.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-				sockDev.connect((devicedata[0], int(devicedata[1]) ))
-				sock.settimeout(5.0)
+				try:
+					sockDev = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+					sockDev.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+					sockDev.connect((devicedata[0], int(devicedata[1]) ))
+					sockDev.settimeout(1.0)
+				except: print("device is not up")
 				
 				print("Got deviceId from ",self.__server_data.serverip)
 				self.__server_data.socket = sockDev
 				self.__server_data.is_new_server = False
+				print("Connected to device", self.__carId)
 			else:
 				raise Exception(msg)
 		
