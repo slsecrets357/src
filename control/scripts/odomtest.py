@@ -190,7 +190,7 @@ class Odomtest():
         return output
     def pid2(self, error):
         # self.error_sum2 += error * self.dt
-        dt = (rospy.Time.now()-self.timer5).to_sec()
+        dt = (rospy.Time.now()-self.timer4).to_sec()
         # rospy.loginfo("time: %.4f", self.dt)
         self.timer4 = rospy.Time.now()
         derivative = (error - self.last_error2) / dt
@@ -204,19 +204,6 @@ class Odomtest():
         self.odomX += magnitude * math.cos(self.yaw)
         self.odomY += magnitude * math.sin(self.yaw)
         # print(f"odometry: speed={self.velocity}, dt={dt}, mag={magnitude}, cos={math.cos(self.yaw)}, X={self.odomX}, Y={self.odomY}")
-    def get_steering_angle(self):
-        """
-        Determine the steering angle based on the lane center
-        :param center: lane center
-        :return: Steering angle in radians
-        """
-        # Calculate the steering angle in radians
-        image_center = 640 / 2 
-        error = (self.center - image_center)
-        d_error = (error-self.last)/self.dt
-        self.last = error
-        steering_angle = (error*self.p+d_error*self.d)
-        return steering_angle
     def publish_cmd_vel(self, steering_angle, velocity = None, clip = True):
         """
         Publish the steering command to the cmd_vel topic

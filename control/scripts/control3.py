@@ -20,7 +20,7 @@ from trackmap import track_map
 
 class StateMachine():
     #initialization
-    def __init__(self, simulation = False, planned_path = "/paths/path.json", custom_path = False):
+    def __init__(self, simulation = False, planned_path = "/paths/path.json", custom_path = False, localisation = False):
         rospy.init_node('control_node', anonymous=True)
         self.rate = rospy.Rate(25)
         self.dt = 1/25 #for PID
@@ -261,7 +261,9 @@ class StateMachine():
         self.toggle = 0
         # self.t1 = time.time()
         self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
-        self.localise_before_decision = False
+        self.localise_before_decision = localisation
+        if localisation:
+            print("localisation on")
     
     def _init_socket_semaphore(self):
         # Communication parameters, create and bind socket
@@ -288,7 +290,8 @@ class StateMachine():
         print("x,y,yaw",self.x,self.y,self.yaw)
 
     def plan_path(self, custom_path, planned_path):
-        # self.localise()
+        if self.localise_before_decision:
+            self.localise()
         if custom_path:
             self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
             self.track_map.plan_path()
@@ -296,9 +299,8 @@ class StateMachine():
         else:
             self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
             self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
-            # REMOVE WHEN LOCALISATION WORK
-            self.track_map.location = self.planned_path[0]
-
+            if not self.localise_before_decision:
+                self.track_map.location = self.planned_path[0]
             self.track_map.plan_path()
         if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
             self.hw = True
@@ -2191,9 +2193,11 @@ if __name__ == '__main__':
     parser.add_argument("--simulation", type=str, default=True, help="Run the robot in simulation or real life")
     parser.add_argument("--path", type=str, default="/paths/path.json", help="Planned path")
     parser.add_argument("--custom", type=str, default=False, help="Custom path")
+    parser.add_argument("--localisation", type=str, default=False, help="localisation enabled")
     # args, unknown = parser.parse_known_args()
     args = parser.parse_args(rospy.myargv()[1:])
     s = args.simulation=="True"
     c = args.custom=="True"
-    node = StateMachine(simulation=s,planned_path=args.path,custom_path=c)
+    l = args.localisation=="True"
+    node = StateMachine(simulation=s,planned_path=args.path,custom_path=c,localisation=l)
     rospy.spin()
