@@ -41,7 +41,7 @@ class gpstrackerNODE():
     
     def __init__(self):
         beacon = 12345
-        id = 2
+        id = 5
         serverpublickey = os.path.dirname(os.path.realpath(__file__))+'/publickey_server.pem'
         
         self.gpsStR, gpsStS = Pipe(duplex = False)

@@ -28,6 +28,7 @@ class StateMachine():
         self.localise_before_decision = localisation
         if localisation:
             print("localisation on")
+        self.msg = String()
 
         #simulation
         self.simulation = simulation
@@ -1939,7 +1940,7 @@ class StateMachine():
         return self.object_detected(4)
     def is_green(self):
         #CHANGE
-        return True
+        # return True
         self.orientation = np.argmin([abs(self.yaw),abs(self.yaw-1.5708),abs((self.yaw)-3.14159),abs(self.yaw-4.71239),abs(self.yaw-6.28319)])%4
         if self.simulation:
             if self.orientation==1 or self.orientation==3: #N or S
@@ -1969,7 +1970,7 @@ class StateMachine():
                 except Exception as e:
                     if str(e) !="timed out":
                         print("Receiving data failed with error: " + str(e))
-                        return False
+                        return True
             else:
                 # topic = 'master' #'slave'
                 try:
@@ -1985,7 +1986,7 @@ class StateMachine():
                 except Exception as e:
                     if str(e) !="timed out":
                         print("Receiving data failed with error: " + str(e))
-                        return False
+                        return True
     def crosswalk_sign_detected(self):
         return self.object_detected(5)
     def pedestrian_appears(self):
