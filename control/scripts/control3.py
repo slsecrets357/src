@@ -591,66 +591,67 @@ class StateMachine():
             self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
             return 1
         elif not self.cp:
-            car_sizes = self.get_car_size(minSize = 175)
+            car_sizes = self.get_car_size(minSize = 135)
             num = len(car_sizes)
             rightCar = False
-            for box in car_sizes:
-                if box[0] + box[2]/2 > 144:
-                    rightCar = True
-                    break
-            if num > 0 and rightCar and rospy.Time.now() > self.exitCD:
-                if self.timerO is None:
-                    print("car detected, waiting for 2s to ascertain car's speed")
-                    self.timerO = rospy.Time.now() + rospy.Duration(2)
-                    if self.timer2 is None:
+            if not self.parking_detected(min_size = 35):
+                for box in car_sizes:
+                    if box[0] + box[2]/2 > 144 and box[2]/box[3] < 1.65:
+                        rightCar = True
+                        break
+                if num > 0 and rightCar and rospy.Time.now() > self.exitCD:
+                    if self.timerO is None:
+                        print("car detected, waiting for 2s to ascertain car's speed")
+                        self.timerO = rospy.Time.now() + rospy.Duration(2)
+                        if self.timer2 is None:
+                            self.highwaySide = 1
+                        self.numCars, self.firstDetectionSizes = num, car_sizes
+                    if rospy.Time.now() >= self.timerO:
+                        if num < 2:
+                            print("only one car, overtake, side is ", self.highwaySide) 
+                            self.timerO = None
+                            self.history = self.state
+                            self.overtakeAngle = np.pi*0.3
+                            self.state = 7 #overtake
+                            return 1
+                        self.idle()
+                        return 0
+                    else:
+                        self.idle()
+                        return 0
+                if self.timer2 is not None and rospy.Time.now() >= self.timer2:
+                    #go back to right side
+                    print("timer2 expired & no car in sight. going back to right side")
+                    self.timerO = None
+                    self.timer2 = None
+                    self.history = self.state
+                    self.overtakeAngle = np.pi*0.2
+                    self.state = 7 #switch lane
+                    return 1
+                
+                roadblock_sizes =  self.get_obj_size(obj_id = 10)
+                num = len(roadblock_sizes)
+                rightBlock = False
+                for box in roadblock_sizes:
+                    if box[0] + box[2]/2 > 144:
+                        rightBlock = True
+                        break
+                if num > 0 and rightBlock:
+                    if self.timerO is None:
+                        print("roadblock detected, waiting for 2s to ascertain position")
+                        self.timerO = rospy.Time.now() + rospy.Duration(2)
                         self.highwaySide = 1
-                    self.numCars, self.firstDetectionSizes = num, car_sizes
-                if rospy.Time.now() >= self.timerO:
-                    if num < 2:
-                        print("only one car, overtake, side is ", self.highwaySide) 
+                    if rospy.Time.now() >= self.timerO and num < 2:
+                        print("overtake roadblock!") 
                         self.timerO = None
                         self.history = self.state
                         self.overtakeAngle = np.pi*0.3
+                        self.roadblock = True
                         self.state = 7 #overtake
                         return 1
-                    self.idle()
-                    return 0
-                else:
-                    self.idle()
-                    return 0
-            if self.timer2 is not None and rospy.Time.now() >= self.timer2:
-                #go back to right side
-                print("timer2 expired & no car in sight. going back to right side")
-                self.timerO = None
-                self.timer2 = None
-                self.history = self.state
-                self.overtakeAngle = np.pi*0.2
-                self.state = 7 #switch lane
-                return 1
-            
-            roadblock_sizes =  self.get_obj_size(obj_id = 10)
-            num = len(roadblock_sizes)
-            rightBlock = False
-            for box in roadblock_sizes:
-                if box[0] + box[2]/2 > 144:
-                    rightBlock = True
-                    break
-            if num > 0 and rightBlock:
-                if self.timerO is None:
-                    print("roadblock detected, waiting for 2s to ascertain position")
-                    self.timerO = rospy.Time.now() + rospy.Duration(2)
-                    self.highwaySide = 1
-                if rospy.Time.now() >= self.timerO and num < 2:
-                    print("overtake roadblock!") 
-                    self.timerO = None
-                    self.history = self.state
-                    self.overtakeAngle = np.pi*0.3
-                    self.roadblock = True
-                    self.state = 7 #overtake
-                    return 1
-                else:
-                    self.publish_cmd_vel(0,0)
-                    return 0
+                    else:
+                        self.publish_cmd_vel(0,0)
+                        return 0
         
         # Determine the steering angle based on the center and publish the steering command
         self.publish_cmd_vel(self.get_steering_angle())
@@ -1983,8 +1984,8 @@ class StateMachine():
         return self.object_detected(7)
     def light_detected(self):
         return self.object_detected(9)
-    def parking_detected(self):
-        return self.object_detected(4)
+    def parking_detected(self, min_size = 0):
+        return self.object_detected(4, min_size = 0)
     def is_green(self):
         #CHANGE
         # return True
@@ -2171,20 +2172,20 @@ class StateMachine():
             if i>=3: 
                 break
         return car_sizes
-    def object_detected(self, obj_id):
+    def object_detected(self, obj_id, min_size = 0):
         if self.numObj >= 2:
             if self.detected_objects[0]==obj_id: 
-                if self.check_size(obj_id,0):
+                if self.check_size(obj_id,0, min_size = 0):
                     return True
             elif self.detected_objects[1]==obj_id:
                 if self.check_size(obj_id,1):
                     return True
         elif self.numObj == 1:
             if self.detected_objects[0]==obj_id: 
-                if self.check_size(obj_id,0):
+                if self.check_size(obj_id,0, min_size = 0):
                     return True
         return False
-    def check_size(self, obj_id, index):
+    def check_size(self, obj_id, index, min_size = 0):
         #checks whether a detected object is within a certain min and max sizes defined by the obj type
         box = self.box1 if index==0 else self.box2
         conf = self.confidence[index]
@@ -2195,7 +2196,8 @@ class StateMachine():
         #     conf_thresh = 0.35
         # else:
         #     conf_thresh = 0.8
-        return size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= self.confidence_thresh[obj_id] #check this
+        min = self.min_sizes[obj_id] if min_size < 15 else min_size
+        return size >= min and size <= self.max_sizes[obj_id] and conf >= self.confidence_thresh[obj_id] #check this
     def get_steering_angle(self,offset=20):
         """
         Determine the steering angle based on the lane center
