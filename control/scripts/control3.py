@@ -78,13 +78,13 @@ class StateMachine():
             self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
 
             # get initial yaw from IMU
-            self.initialYaw = 0
+            self.initialYaw = 180
             #launch sensors at 0 to remove this
             #or get the yaw offset from 0 after run
-            while self.initialYaw==0:
-                imu = rospy.wait_for_message("/automobile/IMU",IMU)
-                self.initialYaw = imu.yaw
-                print("initialYaw: "+str(self.initialYaw))
+            # while self.initialYaw==0:
+            #     imu = rospy.wait_for_message("/automobile/IMU",IMU)
+            #     self.initialYaw = imu.yaw
+            #     print("initialYaw: "+str(self.initialYaw))
             print("Real mode")
             self.odomRatio = 0.0066
             self.process_yaw = self.process_yaw_real
@@ -316,7 +316,7 @@ class StateMachine():
             self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
             if not self.localise_before_decision:
                 self.track_map.location = self.planned_path[0]
-                # self.track_map.location = "" # SET THIS DURING COMPETITION
+                # self.track_map.location = "int6W" # SET THIS DURING COMPETITION
                 # closest = str(self.track_map.closest_node(self.track_map.location,self.planned_path))
                 # index = self.planned_path.index(closest)
                 # new_path = self.planned_path[index:] + self.planned_path[:index]
@@ -333,8 +333,8 @@ class StateMachine():
         self.decisions = self.track_map.directions
         self.decisionsI = 0
         self.full_path = self.track_map.path
-        if self.full_path[self.decisionsI] == self.planned_path[0]:
-            self.planned_path.pop(0)
+        # if self.full_path[self.decisionsI] == self.planned_path[0]:
+        #     self.planned_path.pop(0)
         i = 0
         while i < len(self.planned_path) - 1:
             if self.planned_path[i] == "track1N" and self.planned_path[i+1] == "track2N":
