@@ -75,7 +75,7 @@ class StateMachine():
             self.class_names = ['oneway', 'highwayentrance', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayexit', 'priority',
                 'lights','block','pedestrian','car','others','nothing']
             self.min_sizes = [25,25,40,50,40,35,30,25,25,150,75,72,125]
-            self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
+            self.max_sizes = [100,75,125,100,125,125,70,75,100,350,170,250,300]
 
             # get initial yaw from IMU
             self.initialYaw = 180
