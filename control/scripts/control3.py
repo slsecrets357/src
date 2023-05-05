@@ -74,7 +74,7 @@ class StateMachine():
             self.publish_cmd_vel = self.publish_cmd_vel_real
             self.class_names = ['oneway', 'highwayentrance', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayexit', 'priority',
                 'lights','block','pedestrian','car','others','nothing']
-            self.min_sizes = [25,25,40,50,45,35,30,25,25,150,75,72,250]
+            self.min_sizes = [25,25,40,50,40,35,30,25,25,150,75,72,125]
             self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
 
             # get initial yaw from IMU
@@ -116,6 +116,7 @@ class StateMachine():
         self.states = ['Lane Following', "Approaching Intersection", "Stopping at Intersection", 
                        "Intersection Maneuvering", "Approaching Crosswalk", "Pedestrian", "Highway",
                        "overtaking", "Roundabout", "Parking", "Initial", "Parked", "Curvedpath"] #13 states
+        self.confidence_thresh = [0.8, 0.8, 0.83, 0.8, 0.8, 0.83, 0.8, 0.8, 0.83, 0.83, 0.85, 0.853]
         self.state = 10 #initial
         if self.history is None:
             self.history = 0
@@ -1097,7 +1098,7 @@ class StateMachine():
                 self.overtaking_angle = self.orientations[self.orientation]
                 self.overtakeDuration = 0.45 if (self.highwaySide == 1 and not self.roadblock) else 0.4
                 self.laneOvertakeCD = 2
-                self.laneOvertakeAngle = np.pi*0.175 if (self.highwaySide == 1 and not self.roadblock) else np.pi*0.17
+                self.laneOvertakeAngle = np.pi*0.175 if (self.highwaySide == 1 and not self.roadblock) else np.pi*0.165
         if self.intersectionState==0: #adjusting
             error = self.yaw - self.overtaking_angle
             if error>np.pi:
@@ -2189,12 +2190,12 @@ class StateMachine():
         size = max(box[2], box[3])
         if obj_id==12:
             size = min(box[2], box[3])
-        if obj_id==10:
-            conf_thresh = 0.35
-        else:
-            conf_thresh = 0.8
-        return size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= conf_thresh #check this
-    def get_steering_angle(self,offset=30):
+        # if obj_id==10:
+        #     conf_thresh = 0.35
+        # else:
+        #     conf_thresh = 0.8
+        return size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= self.confidence_thresh[obj_id] #check this
+    def get_steering_angle(self,offset=20):
         """
         Determine the steering angle based on the lane center
         :param center: lane center
