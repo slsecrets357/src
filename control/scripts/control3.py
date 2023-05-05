@@ -78,13 +78,13 @@ class StateMachine():
             self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
 
             # get initial yaw from IMU
-            self.initialYaw = 180
+            self.initialYaw = 0
             #launch sensors at 0 to remove this
             #or get the yaw offset from 0 after run
-            # while self.initialYaw==0:
-            #     imu = rospy.wait_for_message("/automobile/IMU",IMU)
-            #     self.initialYaw = imu.yaw
-            #     print("initialYaw: "+str(self.initialYaw))
+            while self.initialYaw==0:
+                imu = rospy.wait_for_message("/automobile/IMU",IMU)
+                self.initialYaw = imu.yaw
+                print("initialYaw: "+str(self.initialYaw))
             print("Real mode")
             self.odomRatio = 0.0066
             self.process_yaw = self.process_yaw_real
@@ -527,28 +527,61 @@ class StateMachine():
     #actions
     def lanefollow(self):
         #transition events
-        if self.stop_sign_detected() and self.timer2 is None:
+        if self.stop_sign_detected(): #and self.timer2 is None:
             print("stop sign detected -> state 1")
             self.intersectionStop = True
             self.state = 1
             self.timer0 = None
             self.timer2 = None
             return 1
-        elif self.light_detected() and self.timer2 is None:
-            if self.is_green():
-                print("green light detected -> state 1")
-                self.intersectionStop = False
-            else:
-                print("red light detected -> state 1")
-                self.intersectionStop = True
-                self.light = True
-            self.state = 1
-            self.timer2 = None
-            self.timer0 = None
-            return 1
-        elif self.crosswalk_sign_detected() and self.timer2 is None:
+        # elif self.light_detected(): #and self.timer2 is None:
+        #     if self.is_green():
+        #         print("green light detected -> state 1")
+        #         self.intersectionStop = False
+        #     else:
+        #         print("red light detected -> state 1")
+        #         self.intersectionStop = True
+        #         self.light = True
+        #     self.state = 1
+        #     self.timer2 = None
+        #     self.timer0 = None
+            # return 1
+        elif self.crosswalk_sign_detected(): #and self.timer2 is None:
             print("crosswalk sign detected -> state 4")
             self.state = 4
+            return 1
+        elif self.parking_detected():
+            # if not at parking decision yet pass
+            if self.decisionsI >= len(self.decisions):
+                self.publish_cmd_vel(self.get_steering_angle())
+                print("park detected but wrong decision")
+                return 0
+            elif (self.decisions[self.decisionsI] != 3 and self.decisions[self.decisionsI] != 4):
+                self.publish_cmd_vel(self.get_steering_angle())
+                print("park detected but wrong decision")
+                return 0
+            if self.detected_objects[0] == 4:
+                self.parksize = max(self.box1[2], self.box1[3])
+                try:
+                    if self.detected_objects[1] == 12:
+                        self.carsize = max(self.box2[2], self.box2[3])
+                except:
+                    self.carsize = 0
+            else:
+                self.parksize = max(self.box2[2], self.box2[3])
+                if self.detected_objects[0] == 12:
+                    self.carsize = max(self.box1[2], self.box1[3])
+            # self.parksize = self.parksize
+            print("about to park -> 9")
+            self.timer0 = None
+            self.state = 9
+            return 1
+        elif self.ArrivedAtStopline:
+            print("signless intersection detected... -> state 3")
+            self.doneManeuvering = False #set to false before entering state 3
+            self.state = 3
+            self.timer0 = None
+            self.timer2 = None
             return 1
         elif self.pedestrian_appears():
             print("pedestrian appears!!! -> state 5")
@@ -617,39 +650,7 @@ class StateMachine():
                 else:
                     self.publish_cmd_vel(0,0)
                     return 0
-        elif self.parking_detected():
-            # if not at parking decision yet pass
-            if self.decisionsI >= len(self.decisions):
-                self.publish_cmd_vel(self.get_steering_angle())
-                print("park detected but wrong decision")
-                return 0
-            elif (self.decisions[self.decisionsI] != 3 and self.decisions[self.decisionsI] != 4):
-                self.publish_cmd_vel(self.get_steering_angle())
-                print("park detected but wrong decision")
-                return 0
-            if self.detected_objects[0] == 4:
-                self.parksize = max(self.box1[2], self.box1[3])
-                try:
-                    if self.detected_objects[1] == 12:
-                        self.carsize = max(self.box2[2], self.box2[3])
-                except:
-                    self.carsize = 0
-            else:
-                self.parksize = max(self.box2[2], self.box2[3])
-                if self.detected_objects[0] == 12:
-                    self.carsize = max(self.box1[2], self.box1[3])
-            self.parksize = self.parksize*0.00263
-            print("about to park -> 9")
-            self.timer0 = None
-            self.state = 9
-            return 1
-        elif self.ArrivedAtStopline:
-            print("signless intersection detected... -> state 3")
-            self.doneManeuvering = False #set to false before entering state 3
-            self.state = 3
-            self.timer0 = None
-            self.timer2 = None
-            return 1
+        
         # Determine the steering angle based on the center and publish the steering command
         self.publish_cmd_vel(self.get_steering_angle())
         return 0
@@ -1532,7 +1533,8 @@ class StateMachine():
                 # print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
                 self.initialPoints = np.array([self.x, self.y])
                 # print("initialPoints points: ", self.initialPoints)
-                self.offset = 0.35 if self.simulation else 0.2 + self.parksize
+                self.offset = 0.35 if self.simulation else 0.0 + 31.4*3.57/8.5/(self.parksize-1.57)# + self.parksize
+                print("park size is ", self.parksize)
                 # self.offset += 0.463 if self.carsize>0 else 0
                 carSizes = self.get_car_size(minSize = 40)
                 print("car sizes: ", carSizes)
@@ -1599,7 +1601,7 @@ class StateMachine():
             poses = np.array([self.odomX, self.odomY])
             poses = poses.dot(self.rotation_matrices[self.orientation])
             x, y = poses[0], poses[1]
-            # print("position: ",x,y)
+            print("position: ",x,y)
             if self.intersectionState==0: #adjusting
                 if abs(x)>=self.offset:
                     self.intersectionState+=1 #done adjusting
@@ -1611,7 +1613,7 @@ class StateMachine():
                     self.last_error = 0
                     return 0
                 else:
-                    self.publish_cmd_vel(self.get_steering_angle(), self.maxspeed)
+                    self.publish_cmd_vel(23, self.maxspeed)
                     # error = self.yaw-self.currentAngle
                     # self.publish_cmd_vel(self.pid(error), self.maxspeed)
                     # print(str(x))
@@ -2106,9 +2108,9 @@ class StateMachine():
     def straight_trajectory(self, x):
         return 0
     def left_trajectory_real(self, x):
-        return math.exp(3.57*x-4.3)
+        return math.exp(3.57*x-4.4)
     def right_trajectory_real(self, x):
-        return -math.exp(4*x-3.05)
+        return -math.exp(4*x-3.75)
     def left_exit_trajectory_real(self, x):
         return math.exp(4*x+2)
     def right_exit_trajectory_real(self, x):
