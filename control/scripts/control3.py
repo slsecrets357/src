@@ -1534,7 +1534,7 @@ class StateMachine():
                 # print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
                 self.initialPoints = np.array([self.x, self.y])
                 # print("initialPoints points: ", self.initialPoints)
-                self.offset = 0.35 if self.simulation else 0.0 + 31.4*3.57/8.5/(self.parksize-1.57)# + self.parksize
+                self.offset = 0.35 if self.simulation else self.signsize_to_distance(self.parksize)+0.3-0.65 #tune last value
                 print("park size is ", self.parksize)
                 # self.offset += 0.463 if self.carsize>0 else 0
                 carSizes = self.get_car_size(minSize = 40)
@@ -2134,8 +2134,9 @@ class StateMachine():
 
     #others
     def carsize_to_distance(self, height):
-        # return 0.92523112 - 0.42423197*height + 0.28328111*height*height - 0.08428235*height*height*height
         return 84.89/(height - 3.137)
+    def signsize_to_distance(self, height):
+        return 7.53/(height-31.887)
     def get_obj_size(self, obj_id = 10, minSize = None):
         sizes = []
         if minSize is None:
