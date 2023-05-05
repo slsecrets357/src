@@ -74,17 +74,17 @@ class StateMachine():
             self.publish_cmd_vel = self.publish_cmd_vel_real
             self.class_names = ['oneway', 'highwayentrance', 'stopsign', 'roundabout', 'park', 'crosswalk', 'noentry', 'highwayexit', 'priority',
                 'lights','block','pedestrian','car','others','nothing']
-            self.min_sizes = [25,25,40,50,45,35,30,25,25,150,75,72,125]
+            self.min_sizes = [25,25,40,50,45,35,30,25,25,150,75,72,250]
             self.max_sizes = [100,75,125,100,120,125,70,75,100,350,170,250,300]
 
             # get initial yaw from IMU
             self.initialYaw = 0
             #launch sensors at 0 to remove this
             #or get the yaw offset from 0 after run
-            while self.initialYaw==0:
-                imu = rospy.wait_for_message("/automobile/IMU",IMU)
-                self.initialYaw = imu.yaw
-                print("initialYaw: "+str(self.initialYaw))
+            # while self.initialYaw==0:
+            #     imu = rospy.wait_for_message("/automobile/IMU",IMU)
+            #     self.initialYaw = imu.yaw
+            #     print("initialYaw: "+str(self.initialYaw))
             print("Real mode")
             self.odomRatio = 0.0066
             self.process_yaw = self.process_yaw_real
@@ -316,13 +316,13 @@ class StateMachine():
             self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
             self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
             if not self.localise_before_decision:
-                self.track_map.location = self.planned_path[0]
-                # self.track_map.location = "int6W" # SET THIS DURING COMPETITION
-                # closest = str(self.track_map.closest_node(self.track_map.location,self.planned_path))
-                # index = self.planned_path.index(closest)
-                # new_path = self.planned_path[index:] + self.planned_path[:index]
-                # self.planned_path = new_path
-                # self.track_map.planned_path = self.planned_path
+                # self.track_map.location = self.planned_path[0]
+                self.track_map.location = "track2N" # SET THIS DURING COMPETITION
+                closest = str(self.track_map.closest_node(self.track_map.location,self.planned_path))
+                index = self.planned_path.index(closest)
+                new_path = self.planned_path[index:] + self.planned_path[:index]
+                self.planned_path = new_path
+                self.track_map.planned_path = self.planned_path
             self.track_map.plan_path()
         if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
             self.hw = True
@@ -590,7 +590,7 @@ class StateMachine():
             self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
             return 1
         elif not self.cp:
-            car_sizes = self.get_car_size(minSize = 100)
+            car_sizes = self.get_car_size(minSize = 175)
             num = len(car_sizes)
             rightCar = False
             for box in car_sizes:
@@ -1333,7 +1333,7 @@ class StateMachine():
             # error = y - desiredY
             # print("x,y,y_error: ",x,y,error)
             # self.publish_cmd_vel(self.pid2(error), self.maxspeed*0.9)
-            self.publish_cmd_vel(-0.37, self.maxspeed*0.9)
+            self.publish_cmd_vel(-0.40, self.maxspeed*0.9)
             arrived = abs(self.yaw-self.rdbExitYaw) <= 0.1
             if arrived:
                 print("trajectory done. adjusting angle")
@@ -2114,7 +2114,7 @@ class StateMachine():
     def left_exit_trajectory_real(self, x):
         return math.exp(4*x+2)
     def right_exit_trajectory_real(self, x):
-        return -math.exp(4*x-2.65)
+        return -math.exp(4*x-1.65)
     def leftpark_trajectory(self, x):
         return math.exp(3.57*x-4.2) #real dimensions
     def left_trajectory_sim(self, x):
@@ -2194,7 +2194,7 @@ class StateMachine():
         else:
             conf_thresh = 0.8
         return size >= self.min_sizes[obj_id] and size <= self.max_sizes[obj_id] and conf >= conf_thresh #check this
-    def get_steering_angle(self,offset=20):
+    def get_steering_angle(self,offset=30):
         """
         Determine the steering angle based on the lane center
         :param center: lane center
