@@ -275,7 +275,8 @@ class StateMachine():
         self.toggle = 0
         # self.t1 = time.time()
         self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
-    
+        self.overtaking_angle = self.yaw
+
     def _init_socket_semaphore(self):
         # Communication parameters, create and bind socket
         self.PORT = 50007
@@ -321,6 +322,7 @@ class StateMachine():
                 # index = self.planned_path.index(closest)
                 # new_path = self.planned_path[index:] + self.planned_path[:index]
                 # self.planned_path = new_path
+                # self.track_map.planned_path = self.planned_path
             self.track_map.plan_path()
         if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
             self.hw = True
@@ -619,9 +621,11 @@ class StateMachine():
             # if not at parking decision yet pass
             if self.decisionsI >= len(self.decisions):
                 self.publish_cmd_vel(self.get_steering_angle())
+                print("park detected but wrong decision")
                 return 0
             elif (self.decisions[self.decisionsI] != 3 and self.decisions[self.decisionsI] != 4):
                 self.publish_cmd_vel(self.get_steering_angle())
+                print("park detected but wrong decision")
                 return 0
             if self.detected_objects[0] == 4:
                 self.parksize = max(self.box1[2], self.box1[3])
@@ -1063,12 +1067,18 @@ class StateMachine():
             # self.timerodom = rospy.Time.now()
             self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
             # self.localise()
-            check_curve = (self.full_path[self.decisionsI] == "track2N" or self.full_path[self.decisionsI] == "track2S")
-            if check_curve and abs(self.center-320-20)>30:
+            try:
+                check_curve = (self.full_path[self.decisionsI] == "track2N" or self.full_path[self.decisionsI] == "track2S")
+            except:
+                check_curve = False
+            if check_curve and abs(self.center-275)>20:
                 self.overtaking_angle = self.yaw
                 print("inside curved region")
-                print(self.full_path[self.decisionsI+1])
-                p = self.full_path[self.decisionsI+1]
+                try:
+                    print(self.full_path[self.decisionsI+1])
+                    p = self.full_path[self.decisionsI+1]
+                except:
+                    p = ""
                 if p == "roundabout": #or p == "track2N" or p == "highwayS" or p == "curvedpath":
                     print("on inner side")
                     self.overtakeDuration = 1
@@ -1088,7 +1098,7 @@ class StateMachine():
                 self.laneOvertakeCD = 2
                 self.laneOvertakeAngle = np.pi*0.175 if (self.highwaySide == 1 and not self.roadblock) else np.pi*0.17
         if self.intersectionState==0: #adjusting
-            error = self.yaw - (self.overtaking_angle)
+            error = self.yaw - self.overtaking_angle
             if error>np.pi:
                 error-=2*np.pi
             elif error<-np.pi:

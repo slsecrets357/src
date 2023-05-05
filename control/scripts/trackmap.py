@@ -160,6 +160,7 @@ class track_map():
         # get the path and directions
         self.path = [self.location]
         loc = self.location
+        # print(self.planned_path)s
         for i in range(len(self.planned_path)):
             if self.planned_path[i] != "start": #remove edges going to start
                 try:
@@ -179,6 +180,7 @@ class track_map():
             p = nx.shortest_path(self.map_graph, source=loc, target=self.planned_path[i], weight='weight')
             loc = self.planned_path[i]
             self.path += p[1:]
+            # print(p[1:])
             if self.planned_path[i] != "parkingN" and self.planned_path[i] != "parkingS" and loc != "parkingN" and loc != "parkingS":
                 self.add_edge('track1N','parkingN',3)
                 self.add_edge('parkingN','track2N',5)
@@ -602,11 +604,14 @@ if __name__ == '__main__':
     # node.plan_path()
     # node.draw_map_edgelist()
     # node.draw_map_graphml()
-    planned_path = ["int4N","int4W","int5N","int5N","int5W","track1N","parkingN","track2N","roundabout","highwayS"]
+    planned_path = ["int4N","int4W","int5N","int5W","track1N","parkingN","track2N","roundabout","highwayS"]
+    print(planned_path)
     n = track_map(0,0,0,planned_path)
     n.location = "int6W" # SET THIS DURING COMPETITION
-    closest = str(track_map.closest_node(n.location,planned_path))
+    closest = str(n.closest_node(n.location,planned_path))
     index = planned_path.index(closest)
     new_path = planned_path[index:] + planned_path[:index]
     planned_path = new_path
     print(new_path)
+    n.planned_path = new_path
+    n.plan_path()
