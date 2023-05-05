@@ -464,10 +464,10 @@ class StateMachine():
         elif self.state == 6: #Highway
             return self.highway()
         elif self.state == 7: #overtake
-            if self.history == 6:
-                return self.highway_overtake()
-            else:
-                return self.lane_overtake()
+            # if self.history == 6:
+            #     return self.highway_overtake()
+            # else:
+            return self.lane_overtake()
         elif self.state == 8: #Roundabout
             return self.roundabout()
         elif self.state == 9: #Parking
@@ -535,18 +535,18 @@ class StateMachine():
             self.timer0 = None
             self.timer2 = None
             return 1
-        # elif self.light_detected(): #and self.timer2 is None:
-        #     if self.is_green():
-        #         print("green light detected -> state 1")
-        #         self.intersectionStop = False
-        #     else:
-        #         print("red light detected -> state 1")
-        #         self.intersectionStop = True
-        #         self.light = True
-        #     self.state = 1
-        #     self.timer2 = None
-        #     self.timer0 = None
-            # return 1
+        elif self.light_detected(): #and self.timer2 is None:
+            if self.is_green():
+                print("green light detected -> state 1")
+                self.intersectionStop = False
+            else:
+                print("red light detected -> state 1")
+                self.intersectionStop = True
+                self.light = True
+            self.state = 1
+            self.timer2 = None
+            self.timer0 = None
+            return 1
         elif self.crosswalk_sign_detected(): #and self.timer2 is None:
             print("crosswalk sign detected -> state 4")
             self.state = 4
@@ -703,57 +703,6 @@ class StateMachine():
         return 0
     
     def maneuverInt(self):
-        # need to reposition by changing trajectories
-        # if self.roadblock_detected() and not self.roadblock and (abs(self.yaw-self.destinationAngle) <= 0.25 or abs(self.yaw-self.destinationAngle) >= 6.03):
-        #     self.roadblock = True
-        #     print("roadblock detected: recalculate path")
-        #     if self.simulation:
-        #         dests = self.track_map.get_location_dest(self.full_path[self.decisionsI])
-        #     else:
-        #         dests = [0,1] #CHANGE
-        #     if self.intersectionDecision == 0:
-        #         if 1 in dests:
-        #             self.destinationAngle -= np.pi/2
-        #             if self.destinationAngle < -0.5:
-        #                 self.destinationAngle += np.pi*2
-        #             self.trajectory = self.straight_trajectory
-        #             self.intersectionDecision = 1
-        #             self.kd2 += 5
-        #         else:
-        #             self.destinationAngle -= np.pi
-        #             if self.destinationAngle < -0.5:
-        #                 self.destinationAngle += np.pi*2
-        #             self.trajectory = self.right_trajectory
-        #             self.intersectionDecision = 2
-        #     elif self.intersectionDecision == 1:
-        #         if 0 in dests:
-        #             self.destinationAngle += np.pi/2
-        #             if self.destinationAngle > 5.5:
-        #                 self.destinationAngle = 0
-        #             self.trajectory = self.left_trajectory
-        #             self.intersectionDecision = 0
-        #         else:
-        #             self.destinationAngle -= np.pi/2
-        #             if self.destinationAngle < 0.5:
-        #                 self.destinationAngle += np.pi*2
-        #             self.trajectory = self.right_trajectory
-        #             self.intersectionDecision = 2
-        #     else:
-        #         if 1 in dests:
-        #             self.destinationAngle += np.pi/2
-        #             if self.destinationAngle > 5.5:
-        #                 self.destinationAngle = 0
-        #             self.trajectory = self.straight_trajectory
-        #             self.intersectionDecision = 1
-        #             self.kd2 += 5
-        #         else:
-        #             self.destinationAngle -= np.pi
-        #             if self.destinationAngle < -0.5:
-        #                 self.destinationAngle += np.pi*2
-        #             self.trajectory = self.left_trajectory
-        #             self.intersectionDecision = 0
-        #     return 0
-
         if self.pedestrian_appears():
             print("pedestrian appears!!! -> state 5")
             self.history = self.state
@@ -773,10 +722,6 @@ class StateMachine():
                 self.state = 0 #go back to lane following
             self.hw = False
             self.cp = False
-            if self.roadblock:
-                self.roadblock = False
-                self.kd2 = 1
-                print("done new path after roadblock")
             self.initialPoints = None #reset initial points
             self.pl = 320
             self.adjustYawError = 0.2
@@ -974,73 +919,73 @@ class StateMachine():
             self.state = 3
             self.highwaySide = 1
             return 1
-        if self.timer2 is not None and rospy.Time.now() >= self.timer2 and self.highwaySide == -1:
-            #go back to right side
-            print("timer2 expired & no car in sight. going back to right side")
-            self.timerO = None
-            self.timer2 = None
-            self.history = self.state
-            self.state = 7 #switch lane
-            return 1
-        car_sizes =  self.get_car_size()
-        num = len(car_sizes)
-        # detect car, check sizes, wait for 2s, then check again. 
-        # if 2 cars, size same, then stay idle
-        # if 1 car, overtake
-        if num > 0:
-            if self.timerO is None:
-                print("car detected, waiting for 2s to ascertain car's speed")
-                self.timerO = rospy.Time.now() + rospy.Duration(1)
-                self.numCars, self.firstDetectionSizes = num, car_sizes
-            if rospy.Time.now() >= self.timerO:
-                if self.highwaySide == -1:
-                    self.timer2 = rospy.Time.now() + rospy.Duration(3) #refresh timer
-                if num < 2:
-                    if self.highwaySide == 1: #on right side
-                        print("only one car, overtake, side is ", self.highwaySide) 
-                        self.timerO = None
-                        self.history = self.state
-                        self.state = 7 #overtake
-                        return 1
-                    else: # on left side.
-                        carSizeRatio = car_sizes[0][2]/car_sizes[0][3]
-                        if carSizeRatio >= 1.6: #means car is on other lane
-                            print("car detected but it's on the right. ignore.")
-                            self.publish_cmd_vel(self.get_steering_angle(offset = 37.5), self.highwaySpeed)
-                            return 0
-                # if self.flag1:
-                #     print("there are two cars, checking if they are static")
-                #     self.flag1 = False
-                #     static = abs(self.firstDetectionSizes[0] - car_sizes[0]) < 7 #tune this
-                #     if static:
-                #         self.highwaySpeed = 0
-                #         print("car is static")
-                #     else:
-                #         self.highwaySpeed = 0.66*self.maxspeed #tune this, tail the car
-                #         print("car is moving, we tail")
-                self.idle()
-                return 0
-            else:
-                self.idle()
-                return 0
-        if self.pedestrian_appears():
-            print("pedestrian appears!!! -> state 5")
-            self.history = self.state
-            self.state = 5
-            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
-            return 1
+        # if self.timer2 is not None and rospy.Time.now() >= self.timer2 and self.highwaySide == -1:
+        #     #go back to right side
+        #     print("timer2 expired & no car in sight. going back to right side")
+        #     self.timerO = None
+        #     self.timer2 = None
+        #     self.history = self.state
+        #     self.state = 7 #switch lane
+        #     return 1
+        # car_sizes =  self.get_car_size()
+        # num = len(car_sizes)
+        # # detect car, check sizes, wait for 2s, then check again. 
+        # # if 2 cars, size same, then stay idle
+        # # if 1 car, overtake
+        # if num > 0:
+        #     if self.timerO is None:
+        #         print("car detected, waiting for 2s to ascertain car's speed")
+        #         self.timerO = rospy.Time.now() + rospy.Duration(1)
+        #         self.numCars, self.firstDetectionSizes = num, car_sizes
+        #     if rospy.Time.now() >= self.timerO:
+        #         if self.highwaySide == -1:
+        #             self.timer2 = rospy.Time.now() + rospy.Duration(3) #refresh timer
+        #         if num < 2:
+        #             if self.highwaySide == 1: #on right side
+        #                 print("only one car, overtake, side is ", self.highwaySide) 
+        #                 self.timerO = None
+        #                 self.history = self.state
+        #                 self.state = 7 #overtake
+        #                 return 1
+        #             else: # on left side.
+        #                 carSizeRatio = car_sizes[0][2]/car_sizes[0][3]
+        #                 if carSizeRatio >= 1.6: #means car is on other lane
+        #                     print("car detected but it's on the right. ignore.")
+        #                     self.publish_cmd_vel(self.get_steering_angle(offset = 37.5), self.highwaySpeed)
+        #                     return 0
+        #         # if self.flag1:
+        #         #     print("there are two cars, checking if they are static")
+        #         #     self.flag1 = False
+        #         #     static = abs(self.firstDetectionSizes[0] - car_sizes[0]) < 7 #tune this
+        #         #     if static:
+        #         #         self.highwaySpeed = 0
+        #         #         print("car is static")
+        #         #     else:
+        #         #         self.highwaySpeed = 0.66*self.maxspeed #tune this, tail the car
+        #         #         print("car is moving, we tail")
+        #         self.idle()
+        #         return 0
+        #     else:
+        #         self.idle()
+        #         return 0
+        # if self.pedestrian_appears():
+        #     print("pedestrian appears!!! -> state 5")
+        #     self.history = self.state
+        #     self.state = 5
+        #     self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+        #     return 1
         self.publish_cmd_vel(self.get_steering_angle(), self.maxspeed*1.33)
         return 0
     
     def lane_overtake(self):
         #/entry: checkDotted
         #action: overtake or wait
-        if self.pedestrian_appears():
-            print("pedestrian appears!!! -> state 5")
-            self.history = self.state
-            self.state = 5
-            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
-            return 1
+        # if self.pedestrian_appears():
+        #     print("pedestrian appears!!! -> state 5")
+        #     self.history = self.state
+        #     self.state = 5
+        #     self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+        #     return 1
         if self.doneManeuvering:
             print("done overtaking. Back to lane following...")
             self.doneManeuvering = False #reset
@@ -1139,109 +1084,109 @@ class StateMachine():
             self.publish_cmd_vel(0, self.maxspeed)
         return 0
     
-    def highway_overtake(self):
-        #/entry: checkDotted
-        #action: overtake or wait
-        if self.pedestrian_appears():
-            print("pedestrian appears!!! -> state 5")
-            self.history = self.state
-            self.state = 5
-            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
-            return 1
-        if self.doneManeuvering:
-            print("done overtaking. Back to lane following...")
-            self.doneManeuvering = False #reset
-            self.state = self.history if self.history is not None else 0
-            cooldown = 5 if self.history == 6 else 2 #6 is highway
-            self.history = None
-            self.initialPoints = None #reset initial points
-            self.timerP = None
-            self.highwaySide *= -1
-            self.pl = 320
-            self.overtakeAngle = np.pi/5
-            if self.highwaySide == -1:
-                self.timer2 = rospy.Time.now() + rospy.Duration(cooldown) #tune this
-            return 1
-        if True: #change with left right overtaking if needed
-            if self.initialPoints is None:
-                self.overtaking_angle = self.yaw
-                # print("current orientation: ", self.directions[self.orientation], self.orientations[self.orientation])
-                # print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
-                self.initialPoints = np.array([self.x, self.y])
-                # print("initialPoints points: ", self.initialPoints)
-                self.offset = 0
-                # print("begin going straight for "+str(self.offset)+"m")
-                self.odomX, self.odomY = 0.0, 0.0 #reset x,y
-                self.timerodom = rospy.Time.now()
-                self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
-            if self.intersectionState==0: #adjusting
-                error = self.yaw - (self.overtaking_angle + self.overtakeAngle*self.highwaySide)
-                if error>np.pi:
-                    error-=2*np.pi
-                elif error<-np.pi:
-                    error+=2*np.pi
-                # print("yaw, error: ", self.yaw, error)
-                if abs(error) <= 0.05:
-                    self.intersectionState += 1
-                    print("done adjusting angle 0!!")
-                    return 0
-                self.publish_cmd_vel(-23*self.highwaySide, self.maxspeed*0.8)
-                return 0
-            elif self.intersectionState==1: #adjusting
-                error = self.yaw - self.overtaking_angle
-                if self.history == 6: #don't need to go back exactly at highway
-                    error -= np.pi/8
-                if error>np.pi:
-                    error-=2*np.pi
-                elif error<-np.pi:
-                    error+=2*np.pi
-                margin = 0.05 if self.history == 6 else 0.5
-                if abs(error) < margin:
-                    print("done changinng lane!!")
-                    self.doneManeuvering = True
-                    self.error_sum = 0 #reset pid errors
-                    self.last_error = 0
-                    return 0
-                self.publish_cmd_vel(23*self.highwaySide, self.maxspeed*0.8)
-            return 0
-            #         self.intersectionState += 1
-            #         # print("done adjusting angle!!")
-            #     self.publish_cmd_vel(23*self.highwaySide, self.maxspeed*0.8)
-            #     return 0
-            # elif self.intersectionState==2: #adjusting
-            #     error = self.yaw - (self.overtaking_angle - self.overtakeAngle)
-            #     if error>np.pi:
-            #         error-=2*np.pi
-            #     elif error<-np.pi:
-            #         error+=2*np.pi
-            #     # print("yaw, error: ", self.yaw, error)
-            #     if abs(error) <= 0.05:
-            #         self.intersectionState +=1
-            #         # print("done adjusting angle!!")
-            #     self.publish_cmd_vel(23, self.maxspeed*0.9)
-            #     return 0
-            # elif self.intersectionState==3: #adjusting
-            #     error = self.yaw - self.overtaking_angle
-            #     if error>np.pi:
-            #         error-=2*np.pi
-            #     elif error<-np.pi:
-            #         error+=2*np.pi
-            #     # print("yaw, error: ", self.yaw, error)
-            #     if abs(error) <= 0.05:
-            #         # print("done adjusting angle!!")
-            #         self.doneManeuvering = True
-            #         self.error_sum = 0 #reset pid errors
-            #         self.last_error = 0
-            #     self.publish_cmd_vel(-23, self.maxspeed*0.9)
-            #     return 0
+    # def highway_overtake(self):
+    #     #/entry: checkDotted
+    #     #action: overtake or wait
+    #     if self.pedestrian_appears():
+    #         print("pedestrian appears!!! -> state 5")
+    #         self.history = self.state
+    #         self.state = 5
+    #         self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+    #         return 1
+    #     if self.doneManeuvering:
+    #         print("done overtaking. Back to lane following...")
+    #         self.doneManeuvering = False #reset
+    #         self.state = self.history if self.history is not None else 0
+    #         cooldown = 5 if self.history == 6 else 2 #6 is highway
+    #         self.history = None
+    #         self.initialPoints = None #reset initial points
+    #         self.timerP = None
+    #         self.highwaySide *= -1
+    #         self.pl = 320
+    #         self.overtakeAngle = np.pi/5
+    #         if self.highwaySide == -1:
+    #             self.timer2 = rospy.Time.now() + rospy.Duration(cooldown) #tune this
+    #         return 1
+    #     if True: #change with left right overtaking if needed
+    #         if self.initialPoints is None:
+    #             self.overtaking_angle = self.yaw
+    #             # print("current orientation: ", self.directions[self.orientation], self.orientations[self.orientation])
+    #             # print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
+    #             self.initialPoints = np.array([self.x, self.y])
+    #             # print("initialPoints points: ", self.initialPoints)
+    #             self.offset = 0
+    #             # print("begin going straight for "+str(self.offset)+"m")
+    #             self.odomX, self.odomY = 0.0, 0.0 #reset x,y
+    #             self.timerodom = rospy.Time.now()
+    #             self.intersectionState = 0 #going straight:0, trajectory following:1, adjusting angle2: 2..
+    #         if self.intersectionState==0: #adjusting
+    #             error = self.yaw - (self.overtaking_angle + self.overtakeAngle*self.highwaySide)
+    #             if error>np.pi:
+    #                 error-=2*np.pi
+    #             elif error<-np.pi:
+    #                 error+=2*np.pi
+    #             # print("yaw, error: ", self.yaw, error)
+    #             if abs(error) <= 0.05:
+    #                 self.intersectionState += 1
+    #                 print("done adjusting angle 0!!")
+    #                 return 0
+    #             self.publish_cmd_vel(-23*self.highwaySide, self.maxspeed*0.8)
+    #             return 0
+    #         elif self.intersectionState==1: #adjusting
+    #             error = self.yaw - self.overtaking_angle
+    #             if self.history == 6: #don't need to go back exactly at highway
+    #                 error -= np.pi/8
+    #             if error>np.pi:
+    #                 error-=2*np.pi
+    #             elif error<-np.pi:
+    #                 error+=2*np.pi
+    #             margin = 0.05 if self.history == 6 else 0.5
+    #             if abs(error) < margin:
+    #                 print("done changinng lane!!")
+    #                 self.doneManeuvering = True
+    #                 self.error_sum = 0 #reset pid errors
+    #                 self.last_error = 0
+    #                 return 0
+    #             self.publish_cmd_vel(23*self.highwaySide, self.maxspeed*0.8)
+    #         return 0
+    #         #         self.intersectionState += 1
+    #         #         # print("done adjusting angle!!")
+    #         #     self.publish_cmd_vel(23*self.highwaySide, self.maxspeed*0.8)
+    #         #     return 0
+    #         # elif self.intersectionState==2: #adjusting
+    #         #     error = self.yaw - (self.overtaking_angle - self.overtakeAngle)
+    #         #     if error>np.pi:
+    #         #         error-=2*np.pi
+    #         #     elif error<-np.pi:
+    #         #         error+=2*np.pi
+    #         #     # print("yaw, error: ", self.yaw, error)
+    #         #     if abs(error) <= 0.05:
+    #         #         self.intersectionState +=1
+    #         #         # print("done adjusting angle!!")
+    #         #     self.publish_cmd_vel(23, self.maxspeed*0.9)
+    #         #     return 0
+    #         # elif self.intersectionState==3: #adjusting
+    #         #     error = self.yaw - self.overtaking_angle
+    #         #     if error>np.pi:
+    #         #         error-=2*np.pi
+    #         #     elif error<-np.pi:
+    #         #         error+=2*np.pi
+    #         #     # print("yaw, error: ", self.yaw, error)
+    #         #     if abs(error) <= 0.05:
+    #         #         # print("done adjusting angle!!")
+    #         #         self.doneManeuvering = True
+    #         #         self.error_sum = 0 #reset pid errors
+    #         #         self.last_error = 0
+    #         #     self.publish_cmd_vel(-23, self.maxspeed*0.9)
+    #         #     return 0
     
     def roundabout(self):
-        if self.pedestrian_appears():
-            print("pedestrian appears!!! -> state 5")
-            self.history = self.state
-            self.state = 5
-            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
-            return 1
+        # if self.pedestrian_appears():
+        #     print("pedestrian appears!!! -> state 5")
+        #     self.history = self.state
+        #     self.state = 5
+        #     self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+        #     return 1
         if self.doneManeuvering:
             print("done roundabout maneuvering. Back to lane following...")
             self.doneManeuvering = False #reset
@@ -1362,12 +1307,12 @@ class StateMachine():
         return 0
 
     def park(self):
-        if self.pedestrian_appears():
-            print("pedestrian appears!!! -> state 5")
-            self.history = self.state
-            self.state = 5
-            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
-            return 1
+        # if self.pedestrian_appears():
+        #     print("pedestrian appears!!! -> state 5")
+        #     self.history = self.state
+        #     self.state = 5
+        #     self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+        #     return 1
         if self.doneParking:
             print("done parking maneuvering. Stopping vehicle...")
             self.doneParking = False #reset
@@ -1742,12 +1687,12 @@ class StateMachine():
                     return True
         return False
     def exitPark(self):
-        if self.pedestrian_appears():
-            print("pedestrian appears!!! -> state 5")
-            self.history = self.state
-            self.state = 5
-            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
-            return 1
+        # if self.pedestrian_appears():
+        #     print("pedestrian appears!!! -> state 5")
+        #     self.history = self.state
+        #     self.state = 5
+        #     self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+        #     return 1
         if self.doneManeuvering:
             print("done exit maneuvering. Back to lane following...")
             self.doneManeuvering = False #reset
@@ -1898,12 +1843,12 @@ class StateMachine():
                 return 0
     
     def curvedpath(self):
-        if self.pedestrian_appears():
-            print("pedestrian appears!!! -> state 5")
-            self.history = self.state
-            self.state = 5
-            self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
-            return 1
+        # if self.pedestrian_appears():
+        #     print("pedestrian appears!!! -> state 5")
+        #     self.history = self.state
+        #     self.state = 5
+        #     self.timerPedestrian = rospy.Time.now()+rospy.Duration(2.5)
+        #     return 1
         if self.doneManeuvering:
             print("done curvedpath maneuvering.")
             self.doneManeuvering = False #reset
