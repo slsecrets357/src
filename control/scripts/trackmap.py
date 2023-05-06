@@ -595,7 +595,14 @@ if __name__ == '__main__':
     m = json.load(open(os.path.dirname(os.path.realpath(__file__))+'/paths/path.json', 'r'))
     # print(m)
     node = track_map(0,15,1.5,m)
-    print(node.closest_node("int6N",["int4N","int4W","int5N","int5N","int5W","track1N","parkingN","track2N","roundabout","highwayS"]))
+    print(node.map.shape[0])
+    windowName = 'track'
+    cv2.namedWindow(windowName,cv2.WINDOW_NORMAL)
+    cv2.resizeWindow(windowName,700,700)
+    cv2.imshow(windowName,cv2.imread(os.path.dirname(os.path.realpath(__file__))+'/templates/map_graphv2.drawio.png'))
+    cv2.waitKey(0)
+    print(node.locate(1,1,0))
+    # print(node.closest_node("int6N",["int4N","int4W","int5N","int5N","int5W","track1N","parkingN","track2N","roundabout","highwayS"]))
     # node.get_location_dest('start')
     # node.make_map()
     # node.draw_map()
@@ -604,14 +611,14 @@ if __name__ == '__main__':
     # node.plan_path()
     # node.draw_map_edgelist()
     # node.draw_map_graphml()
-    planned_path = ["int4N","int4W","int5N","int5W","track1N","parkingN","track2N","roundabout","highwayS"]
-    print(planned_path)
-    n = track_map(0,0,0,planned_path)
-    n.location = "int6W" # SET THIS DURING COMPETITION
-    closest = str(n.closest_node(n.location,planned_path))
-    index = planned_path.index(closest)
-    new_path = planned_path[index:] + planned_path[:index]
-    planned_path = new_path
-    print(new_path)
-    n.planned_path = new_path
-    n.plan_path()
+    # planned_path = ["int4N","int4W","int5N","int5W","track1N","parkingN","track2N","roundabout","highwayS"]
+    # print(planned_path)
+    # n = track_map(0,0,0,planned_path)
+    # n.location = "int6W" # SET THIS DURING COMPETITION
+    # closest = str(n.closest_node(n.location,planned_path))
+    # index = planned_path.index(closest)
+    # new_path = planned_path[index:] + planned_path[:index]
+    # planned_path = new_path
+    # print(new_path)
+    # n.planned_path = new_path
+    # n.plan_path()
