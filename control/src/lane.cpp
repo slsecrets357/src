@@ -16,7 +16,7 @@ public:
         image = cv::Mat::zeros(480, 640, CV_8UC1);
         stopline = false;
         dotted = false;
-        ros::Rate rate(15);
+        ros::Rate rate(50);
         while (ros::ok()) {
             ros::spinOnce();
             rate.sleep();

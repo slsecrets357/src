@@ -185,6 +185,11 @@ add_executable(cameraNode2
   src/include/raspicam/private/private_impl.cpp
   src/yolo-fastestv2.cpp
 )
+add_executable(laneNode
+  src/laneNode.cpp
+  src/include/raspicam/raspicam_cv.cpp
+  src/include/raspicam/private/private_impl.cpp
+)
 add_executable(cameraNode3
   src/cameraNode3.cpp
   src/yolo-fastestv2.cpp
@@ -234,6 +239,13 @@ target_link_libraries(cameraNode
 target_link_libraries(cameraNode2
   ${catkin_LIBRARIES}
   ncnn ${OpenCV_LIBS}
+  raspicam
+  /opt/vc/lib/libmmal_core.so
+  /opt/vc/lib/libmmal_util.so
+)
+target_link_libraries(laneNode
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
   raspicam
   /opt/vc/lib/libmmal_core.so
   /opt/vc/lib/libmmal_util.so

@@ -28,7 +28,7 @@ class CameraHandler():
         :param data: sensor_msg array containing the image in the Gazsbo format
         :return: nothing but sets [cv_image] to the usefull image that can be use in opencv (numpy array)
         """
-        self.cv_image = self.bridge.imgmsg_to_cv2(data, "rgb8")
+        self.cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         cv2.imwrite(self.save_path+str(self.i)+".jpg", self.cv_image)
         print("Image saved: "+str(self.i))
         # cv2.imshow("Frame preview", self.cv_image)
