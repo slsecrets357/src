@@ -476,10 +476,10 @@ class StateMachine():
             desiredY = self.trajectory(x) if x<self.offsets_x[self.intersectionDecision] else self.offsets_y[self.intersectionDecision]
             error = y - desiredY
             # print("x, y_error: ",x,abs(error))
-            # if self.yaw >= 5.73:
-            #     self.yaw -= 
-            print("yaw, self.destinationAngle: ", self.yaw, self.destinationAngle)
-            arrived = abs(self.yaw-self.destinationAngle) <= 0.375 or abs(self.yaw-self.destinationAngle) >= 4.
+            if self.yaw >= 5.73:
+                self.yaw -= np.pi*2
+            # print("yaw, self.destinationAngle: ", self.yaw, self.destinationAngle)
+            arrived = abs(self.yaw-self.destinationAngle) <= 0.375 #or abs(self.yaw-self.destinationAngle) >= 4.5
             if self.intersectionDecision == 1:
                 arrived = arrived and abs(x)>=1 and abs(y-self.offsets_y[self.intersectionDecision]) < 0.2
             # if self.roadblock:
