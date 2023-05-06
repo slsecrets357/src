@@ -72,6 +72,10 @@ class StateMachine():
         self.maxspeed = 0.15
         file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
 
+        while self.yaw==0:
+            imu = rospy.wait_for_message("/automobile/IMU",IMU)
+            self.yaw = self.process_yaw(imu.yaw)
+            print("initialYaw: "+str(self.yaw))
         self.plan_path(custom_path, planned_path)
         #states
         self.states = ['Lane Following', "Approaching Intersection", "Stopping at Intersection", 
@@ -228,9 +232,8 @@ class StateMachine():
         self.sock.settimeout(1)
 
     def plan_path(self, custom_path, planned_path):
-        self.x = 0
+        self.x = 0 #set these
         self.y = 0
-        self.yaw = 0
         if custom_path:
             self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
             self.track_map.plan_path()
@@ -240,7 +243,8 @@ class StateMachine():
             self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
             if not self.localise_before_decision:
                 # self.track_map.location = self.planned_path[0]
-                self.track_map.location = "track2N" # SET THIS DURING COMPETITION
+                # self.track_map.location = "track2N" # SET THIS DURING COMPETITION
+                self.track_map.locate(self.x,self.y,self.yaw)
                 closest = str(self.track_map.closest_node(self.track_map.location,self.planned_path))
                 index = self.planned_path.index(closest)
                 new_path = self.planned_path[index:] + self.planned_path[:index]
