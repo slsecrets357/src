@@ -55,10 +55,10 @@ class StateMachine():
         self.initialYaw = 0
         #launch sensors at 0 to remove this
         #or get the yaw offset from 0 after run
-        while self.initialYaw==0:
-            imu = rospy.wait_for_message("/automobile/IMU",IMU)
-            self.initialYaw = imu.yaw
-            print("initialYaw: "+str(self.initialYaw))
+        # while self.initialYaw==0:
+        #     imu = rospy.wait_for_message("/automobile/IMU",IMU)
+        #     self.initialYaw = imu.yaw
+        #     print("initialYaw: "+str(self.initialYaw))
         print("Real mode")
         self.odomRatio = 0.0066
         self.process_yaw = self.process_yaw_real
@@ -240,13 +240,13 @@ class StateMachine():
             self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
             self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
             if not self.localise_before_decision:
-                self.track_map.location = self.planned_path[0]
-                # self.track_map.location = "track2N" # SET THIS DURING COMPETITION
-                # closest = str(self.track_map.closest_node(self.track_map.location,self.planned_path))
-                # index = self.planned_path.index(closest)
-                # new_path = self.planned_path[index:] + self.planned_path[:index]
-                # self.planned_path = new_path
-                # self.track_map.planned_path = self.planned_path
+                # self.track_map.location = self.planned_path[0]
+                self.track_map.location = "track2N" # SET THIS DURING COMPETITION
+                closest = str(self.track_map.closest_node(self.track_map.location,self.planned_path))
+                index = self.planned_path.index(closest)
+                new_path = self.planned_path[index:] + self.planned_path[:index]
+                self.planned_path = new_path
+                self.track_map.planned_path = self.planned_path
             self.track_map.plan_path()
         if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
             self.hw = True
@@ -347,9 +347,6 @@ class StateMachine():
         elif self.state == 6: #Highway
             return self.highway()
         elif self.state == 7: #overtake
-            # if self.history == 6:
-            #     return self.highway_overtake()
-            # else:
             return self.lane_overtake()
         elif self.state == 8: #Roundabout
             return self.roundabout()
@@ -548,7 +545,7 @@ class StateMachine():
     def stopInt(self):
         #Transition events
         if self.timer is None:
-            self.timer = rospy.Time.now() + rospy.Duration(3.57)
+            self.timer = rospy.Time.now() + rospy.Duration(2.8)
         elif rospy.Time.now() >= self.timer:
             self.timer = None
             self.doneManeuvering = False #set to false before entering state 3
@@ -565,7 +562,7 @@ class StateMachine():
                 return 1
             else:
                 # print("red")
-                self.timer = rospy.Time.now() + rospy.Duration(3.57)
+                self.timer = rospy.Time.now() + rospy.Duration(2.8)
         self.idle()
         return 0
     
@@ -668,8 +665,6 @@ class StateMachine():
             arrived = abs(self.yaw-self.destinationAngle) <= 0.15 or abs(self.yaw-self.destinationAngle) >= 6.13
             if self.intersectionDecision == 1:
                 arrived = arrived and abs(x)>=1 and abs(y-self.offsets_y[self.intersectionDecision]) < 0.2
-            # if self.roadblock:
-            #     arrived = arrived and error < 0.2
             # print("yaw_error: ")
             # print(str(self.yaw-self.destinationAngle))
             if arrived:
