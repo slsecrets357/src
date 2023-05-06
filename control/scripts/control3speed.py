@@ -200,6 +200,27 @@ class StateMachine():
         self.imu_sub = rospy.Subscriber("/automobile/IMU", IMU, self.imu_callback, queue_size=3)
         self.encoder_sub = rospy.Subscriber("/automobile/encoder", encoder, self.encoder_callback, queue_size=3)
 
+        self.parkAdjust = True #adjust flag for forward/backward
+
+        #size of detected objects
+        self.parksize = 0
+        self.parkSecond = False
+        self.carsize = 0
+
+        #flag for light, highway, curvedpath and roadblock
+        self.light = False
+        self.hw = False
+        self.cp = False
+        self.roadblock = False
+
+        self.rdbExitYaw = 0
+        # self.rdbTransf = 0
+        # self.carBlockSem = -1
+        self.toggle = 0
+        # self.t1 = time.time()
+        self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
+        self.overtaking_angle = self.yaw
+
         #stop at shutdown
         def shutdown():
             self.lane_sub.unregister()
@@ -222,27 +243,6 @@ class StateMachine():
                     self.rate.sleep()
         
         rospy.on_shutdown(shutdown)
-
-        self.parkAdjust = True #adjust flag for forward/backward
-
-        #size of detected objects
-        self.parksize = 0
-        self.parkSecond = False
-        self.carsize = 0
-
-        #flag for light, highway, curvedpath and roadblock
-        self.light = False
-        self.hw = False
-        self.cp = False
-        self.roadblock = False
-
-        self.rdbExitYaw = 0
-        # self.rdbTransf = 0
-        # self.carBlockSem = -1
-        self.toggle = 0
-        # self.t1 = time.time()
-        self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
-        self.overtaking_angle = self.yaw
 
     def _write(self, msg):
         """ Represents the writing activity on the the serial.

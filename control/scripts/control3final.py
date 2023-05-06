@@ -186,18 +186,6 @@ class StateMachine():
         # self.localization_sub = message_filters.Subscriber("/automobile/localisation", localisation, queue_size=3)
         self.imu_sub = rospy.Subscriber("/automobile/IMU", IMU, self.imu_callback, queue_size=3)
         self.encoder_sub = rospy.Subscriber("/automobile/encoder", encoder, self.encoder_callback, queue_size=3)
-
-        #stop at shutdown
-        def shutdown():
-            self.lane_sub.unregister()
-            msg = String()
-            msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
-            for haha in range(20):
-                self._write(msg)
-                self.rate.sleep()
-        
-        rospy.on_shutdown(shutdown)
-
         self.parkAdjust = True #adjust flag for forward/backward
 
         #size of detected objects
@@ -218,6 +206,17 @@ class StateMachine():
         # self.t1 = time.time()
         self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
         self.overtaking_angle = self.yaw
+
+        #stop at shutdown
+        def shutdown():
+            self.lane_sub.unregister()
+            msg = String()
+            msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
+            for haha in range(20):
+                self._write(msg)
+                self.rate.sleep()
+        
+        rospy.on_shutdown(shutdown)
 
     def _init_socket_semaphore(self):
         # Communication parameters, create and bind socket

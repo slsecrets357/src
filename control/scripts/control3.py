@@ -220,12 +220,26 @@ class StateMachine():
         self.rotation_matrices = np.array([[[1,0],[0,1]],[[0,-1],[1,0]],[[-1,0],[0,-1]],[[0,1],[-1,0]]]) #E,N,W,S
         self.offset = 0.3
 
-        # Create service proxy
-        # self.get_dir = rospy.ServiceProxy('get_direction',get_direction)
-        # self.get_dotted = rospy.ServiceProxy('dotted',dotted)
-        # rospy.wait_for_service('dotted')
-        # how to use:
-        # d = self.get_dotted("dotted").dotted
+        self.parkAdjust = True #adjust flag for forward/backward
+
+        #size of detected objects
+        self.parksize = 0
+        self.parkSecond = False
+        self.carsize = 0
+
+        #flag for light, highway, curvedpath and roadblock
+        self.light = False
+        self.hw = False
+        self.cp = False
+        self.roadblock = False
+
+        self.rdbExitYaw = 0
+        # self.rdbTransf = 0
+        # self.carBlockSem = -1
+        self.toggle = 0
+        # self.t1 = time.time()
+        self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
+        self.overtaking_angle = self.yaw
 
         # Subscribe to topics
         self.lane_sub = rospy.Subscriber('lane', Lane, self.lane_callback, queue_size=3)
@@ -256,27 +270,6 @@ class StateMachine():
                     self.rate.sleep()
         
         rospy.on_shutdown(shutdown)
-
-        self.parkAdjust = True #adjust flag for forward/backward
-
-        #size of detected objects
-        self.parksize = 0
-        self.parkSecond = False
-        self.carsize = 0
-
-        #flag for light, highway, curvedpath and roadblock
-        self.light = False
-        self.hw = False
-        self.cp = False
-        self.roadblock = False
-
-        self.rdbExitYaw = 0
-        # self.rdbTransf = 0
-        # self.carBlockSem = -1
-        self.toggle = 0
-        # self.t1 = time.time()
-        self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
-        self.overtaking_angle = self.yaw
 
     def _init_socket_semaphore(self):
         # Communication parameters, create and bind socket
@@ -2143,7 +2136,7 @@ class StateMachine():
         #     conf_thresh = 0.8
         min = self.min_sizes[obj_id] if min_size < 15 else min_size
         return size >= min and size <= self.max_sizes[obj_id] and conf >= self.confidence_thresh[obj_id] #check this
-    def get_steering_angle(self,offset=20):
+    def get_steering_angle(self,offset=30):
         """
         Determine the steering angle based on the lane center
         :param center: lane center
