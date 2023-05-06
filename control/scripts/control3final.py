@@ -188,18 +188,6 @@ class StateMachine():
         # self.localization_sub = message_filters.Subscriber("/automobile/localisation", localisation, queue_size=3)
         self.imu_sub = rospy.Subscriber("/automobile/IMU", IMU, self.imu_callback, queue_size=3)
         self.encoder_sub = rospy.Subscriber("/automobile/encoder", encoder, self.encoder_callback, queue_size=3)
-
-        #stop at shutdown
-        def shutdown():
-            self.lane_sub.unregister()
-            msg = String()
-            msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
-            for haha in range(20):
-                self._write(msg)
-                self.rate.sleep()
-        
-        rospy.on_shutdown(shutdown)
-
         self.parkAdjust = True #adjust flag for forward/backward
 
         #size of detected objects
@@ -220,6 +208,17 @@ class StateMachine():
         # self.t1 = time.time()
         self.adjustYawError = 0.2 #yaw adjust for intersection maneuvering
         self.overtaking_angle = self.yaw
+
+        #stop at shutdown
+        def shutdown():
+            self.lane_sub.unregister()
+            msg = String()
+            msg.data = '{"action":"3","brake (steerAngle)":'+str(0.0)+'}'
+            for haha in range(20):
+                self._write(msg)
+                self.rate.sleep()
+        
+        rospy.on_shutdown(shutdown)
 
     def _init_socket_semaphore(self):
         # Communication parameters, create and bind socket
@@ -439,6 +438,7 @@ class StateMachine():
                     self.carsize = max(self.box1[2], self.box1[3])
             # self.parksize = self.parksize
             print("about to park -> 9")
+            print(f"park sizes: {self.box1[2]}, {self.box1[3]}")
             self.timer0 = None
             self.state = 9
             return 1
@@ -865,10 +865,10 @@ class StateMachine():
             self.trajectory = self.rdb_trajectory
         if self.initialPoints is None:
             self.set_current_angle()
-            # print("current orientation: ", self.directions[self.orientation], self.orientations[self.orientation])
+            print("current orientation: ", self.directions[self.orientation], self.orientations[self.orientation])
             # print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
             self.initialPoints = np.array([self.x, self.y])
-            # print("initialPoints points: ", self.initialPoints)
+            print("initialPoints points: ", self.initialPoints)
             # self.rdbTransf = -self.orientations[self.orientation]
             self.odomX, self.odomY = 0.0, 0.0 #reset x,y
             self.timerodom = rospy.Time.now()
@@ -924,7 +924,7 @@ class StateMachine():
                 error-=2*np.pi
             elif error<-np.pi:
                 error+=2*np.pi
-            # print("yaw, destAngle, error: ", self.yaw, self.destinationAngle, error)
+            print("yaw, destAngle, error: ", self.yaw, self.destinationAngle, error)
             if abs(error) <= 0.1:
                 print("done roundabout maneuvering!!")
                 self.doneManeuvering = True
@@ -1681,6 +1681,7 @@ class StateMachine():
             self.toggle = 0
             self.msg.data = '{"action":"2","steerAngle":'+str(float("{:.2f}".format(steering_angle)))+'}'
         self._write(self.msg)
+        # print(self.msg)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='State Machine for Robot Control.')
