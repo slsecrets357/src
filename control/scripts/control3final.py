@@ -55,10 +55,10 @@ class StateMachine():
         self.initialYaw = 0
         #launch sensors at 0 to remove this
         #or get the yaw offset from 0 after run
-        # while self.initialYaw==0:
-        #     imu = rospy.wait_for_message("/automobile/IMU",IMU)
-        #     self.initialYaw = imu.yaw
-        #     print("initialYaw: "+str(self.initialYaw))
+        while self.initialYaw==0:
+            imu = rospy.wait_for_message("/automobile/IMU",IMU)
+            self.initialYaw = imu.yaw
+            print("initialYaw: "+str(self.initialYaw))
         print("Real mode")
         self.odomRatio = 0.0066
         self.process_yaw = self.process_yaw_real
@@ -72,10 +72,8 @@ class StateMachine():
         self.maxspeed = 0.15
         file = open(os.path.dirname(os.path.realpath(__file__))+'/PID.json', 'r')
 
-        while self.yaw==0:
-            imu = rospy.wait_for_message("/automobile/IMU",IMU)
-            self.yaw = self.process_yaw(imu.yaw)
-            print("initialYaw: "+str(self.yaw))
+        self.yaw = self.initialYaw
+
         self.plan_path(custom_path, planned_path)
         #states
         self.states = ['Lane Following', "Approaching Intersection", "Stopping at Intersection", 
@@ -232,8 +230,8 @@ class StateMachine():
         self.sock.settimeout(1)
 
     def plan_path(self, custom_path, planned_path):
-        self.x = 0 #set these
-        self.y = 0
+        self.x = 5 # SET THIS DURING COMPETITION
+        self.y = 7.85
         if custom_path:
             self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
             self.track_map.plan_path()
@@ -242,14 +240,14 @@ class StateMachine():
             self.planned_path = json.load(open(os.path.dirname(os.path.realpath(__file__))+planned_path, 'r'))
             self.track_map = track_map(self.x,self.y,self.yaw,self.planned_path)
             if not self.localise_before_decision:
-                # self.track_map.location = self.planned_path[0]
+                self.track_map.location = self.planned_path[0]
                 # self.track_map.location = "track2N" # SET THIS DURING COMPETITION
-                self.track_map.locate(self.x,self.y,self.yaw)
-                closest = str(self.track_map.closest_node(self.track_map.location,self.planned_path))
-                index = self.planned_path.index(closest)
-                new_path = self.planned_path[index:] + self.planned_path[:index]
-                self.planned_path = new_path
-                self.track_map.planned_path = self.planned_path
+                # self.track_map.location = self.track_map.locate(self.x,self.y,self.yaw)
+                # closest = str(self.track_map.closest_node(self.track_map.location,self.planned_path))
+                # index = self.planned_path.index(closest)
+                # new_path = self.planned_path[index:] + self.planned_path[:index]
+                # self.planned_path = new_path
+                # self.track_map.planned_path = self.planned_path
             self.track_map.plan_path()
         if self.track_map.location == "highwayN" or self.track_map.location == "highwayS":
             self.hw = True
@@ -296,7 +294,7 @@ class StateMachine():
 
     def process_yaw_real(self, yaw):
         if yaw>0:
-            newYaw = -((yaw-self.initialYaw)*3.14159/180)
+            newYaw = -((yaw)*3.14159/180)
             self.yaw = newYaw if newYaw>0 else (6.2831853+newYaw)
 
     #callback functions
@@ -440,6 +438,7 @@ class StateMachine():
                     self.carsize = max(self.box1[2], self.box1[3])
             # self.parksize = self.parksize
             print("about to park -> 9")
+            print(f"park sizes: {self.box1[2]}, {self.box1[3]}")
             self.timer0 = None
             self.state = 9
             return 1
@@ -595,10 +594,12 @@ class StateMachine():
             return 1
         elif self.intersectionDecision < 0:
             if self.decisionsI >= len(self.decisions):
-                self.idle()
-                self.idle()
-                self.idle()
-                rospy.signal_shutdown("Exit")
+                self.track_map.location = self.planned_path[-1]
+                self.track_map.planned_path = 'start'
+                self.track_map.plan_path()
+                self.decisions = self.track_map.directions
+                self.decisionsI = 0
+                self.full_path = self.track_map.path
 
             self.intersectionDecision = self.decisions[self.decisionsI] #replace this with service call
             self.decisionsI+=1
@@ -864,10 +865,10 @@ class StateMachine():
             self.trajectory = self.rdb_trajectory
         if self.initialPoints is None:
             self.set_current_angle()
-            # print("current orientation: ", self.directions[self.orientation], self.orientations[self.orientation])
+            print("current orientation: ", self.directions[self.orientation], self.orientations[self.orientation])
             # print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
             self.initialPoints = np.array([self.x, self.y])
-            # print("initialPoints points: ", self.initialPoints)
+            print("initialPoints points: ", self.initialPoints)
             # self.rdbTransf = -self.orientations[self.orientation]
             self.odomX, self.odomY = 0.0, 0.0 #reset x,y
             self.timerodom = rospy.Time.now()
@@ -923,7 +924,7 @@ class StateMachine():
                 error-=2*np.pi
             elif error<-np.pi:
                 error+=2*np.pi
-            # print("yaw, destAngle, error: ", self.yaw, self.destinationAngle, error)
+            print("yaw, destAngle, error: ", self.yaw, self.destinationAngle, error)
             if abs(error) <= 0.1:
                 print("done roundabout maneuvering!!")
                 self.doneManeuvering = True
@@ -1680,6 +1681,7 @@ class StateMachine():
             self.toggle = 0
             self.msg.data = '{"action":"2","steerAngle":'+str(float("{:.2f}".format(steering_angle)))+'}'
         self._write(self.msg)
+        # print(self.msg)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='State Machine for Robot Control.')
