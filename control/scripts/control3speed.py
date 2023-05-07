@@ -398,6 +398,8 @@ class StateMachine():
         elif self.intersectionDecision < 0:
             if self.decisionsI >= 4:
                 self.maxspeed = 0.375
+                self.left_trajectory = self.left_trajectory_speed
+                self.right_trajectory = self.right_trajectory_speed
             if self.decisionsI >= len(self.decisions):
                 self.idle()
                 self.idle()
@@ -479,7 +481,7 @@ class StateMachine():
             if self.yaw >= 5.73:
                 self.yaw -= np.pi*2
             # print("yaw, self.destinationAngle: ", self.yaw, self.destinationAngle)
-            arrived = abs(self.yaw-self.destinationAngle) <= 0.375 #or abs(self.yaw-self.destinationAngle) >= 4.5
+            arrived = abs(self.yaw-self.destinationAngle) <= 0.2 #or abs(self.yaw-self.destinationAngle) >= 4.5
             if self.intersectionDecision == 1:
                 arrived = arrived and abs(x)>=1 and abs(y-self.offsets_y[self.intersectionDecision]) < 0.2
             # if self.roadblock:
@@ -554,7 +556,7 @@ class StateMachine():
             # print("destination orientation: ", self.destinationOrientation, self.destinationAngle)
             self.initialPoints = np.array([self.x, self.y])
             # print("initialPoints points: ", self.initialPoints)
-            self.offset = 1.5 #tune this
+            self.offset = 1 #tune this
             self.odomX, self.odomY = 0.0, 0.0 #reset x,y
             self.timerodom = rospy.Time.now()
             self.intersectionState = 0
@@ -646,8 +648,12 @@ class StateMachine():
     def straight_trajectory(self, x):
         return 0
     def left_trajectory_real(self, x):
-        return math.exp(2.0*x-7.53)
+        return math.exp(3.57*x-4.4)
     def right_trajectory_real(self, x):
+        return -math.exp(4*x-3.75)
+    def left_trajectory_speed(self, x):
+        return math.exp(2.0*x-7.53)
+    def right_trajectory_speed(self, x):
         return -math.exp(4*x-3.75)
     def left_exit_trajectory_real(self, x):
         return math.exp(4*x+2)
